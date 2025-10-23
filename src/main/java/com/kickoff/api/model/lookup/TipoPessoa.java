@@ -5,17 +5,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-@Data // Lombok: Gera Getters, Setters, toString, equals, hashCode
-@NoArgsConstructor // Lombok: Gera construtor sem argumentos
-@AllArgsConstructor // Lombok: Gera construtor com todos os argumentos
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "tipoPessoa") // Seu script criou "TipoPessoas"
+@Table(name = "tipo_pessoa") // ATUALIZADO para snake_case
 public class TipoPessoa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String descricao;
 }

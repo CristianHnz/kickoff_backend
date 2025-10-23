@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class KickoffApiApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(KickoffApiApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(KickoffApiApplication.class, args);
+    }
 
 }

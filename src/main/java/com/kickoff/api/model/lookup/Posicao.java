@@ -9,13 +9,11 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "posicao")
+@Table(name = "posicao") // ATUALIZADO (era 'posicoes')
 public class Posicao {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String descricao;
 }
