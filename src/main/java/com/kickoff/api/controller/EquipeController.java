@@ -7,8 +7,10 @@ import com.kickoff.api.mapper.EquipeMapper; // IMPORTADO
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.service.EquipeService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -63,5 +65,45 @@ public class EquipeController {
                 .map(equipe -> equipeMapper.toEquipeResponseDTO(equipe)) // Mapeamos a entidade para DTO
                 .map(dto -> ResponseEntity.ok(dto))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<?> atualizarEquipe(@PathVariable Long id, @Valid @RequestBody EquipeDTO dto, Authentication authentication) {
+        Usuario usuarioLogado = (Usuario) authentication.getPrincipal();
+
+        try {
+            Equipe equipeAtualizada = equipeService.atualizarEquipe(id, dto, usuarioLogado);
+            EquipeResponseDTO responseDTO = equipeMapper.toEquipeResponseDTO(equipeAtualizada);
+            return ResponseEntity.ok(responseDTO); // Retorna 200 OK com a equipe atualizada
+
+        } catch (EntityNotFoundException e) {
+            // Se o serviço não encontrar a equipe (ou não pertencer ao usuário)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            // Se o nome da equipe já existir
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao atualizar equipe.");
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<?> deletarEquipe(@PathVariable Long id, Authentication authentication) {
+        Usuario usuarioLogado = (Usuario) authentication.getPrincipal();
+        try {
+            equipeService.deletarEquipe(id, usuarioLogado);
+            return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Não é possível excluir a equipe. Ela já está associada a jogadores ou partidas.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao excluir equipe.");
+        }
     }
 }

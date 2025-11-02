@@ -14,4 +14,5 @@ public interface EquipeRepository extends JpaRepository<Equipe, Long> {
     Optional<Equipe> findByNome(String nome);
     List<Equipe> findByAdministrador(Usuario administrador);
     Optional<Equipe> findByIdAndAdministrador(Long id, Usuario administrador);
+    Optional<Equipe> findByNomeAndIdNot(String nome, Long id);
 }
