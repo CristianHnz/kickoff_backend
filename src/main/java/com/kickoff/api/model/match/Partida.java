@@ -4,16 +4,18 @@ import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.role.Arbitro;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data; /* ... (imports) ... */
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "partida") // ATUALIZADO (era 'partidas')
+@Table(name = "partida")
 public class Partida {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,12 +33,12 @@ public class Partida {
     @JoinColumn(name = "arbitro_id")
     private Arbitro arbitro;
     @Column(name = "data_hora", nullable = false)
-    private LocalDateTime dataHora; // Coluna snake_case
+    private LocalDateTime dataHora;
     private String local;
     @Column(name = "placar_casa")
-    private Integer placarCasa; // Coluna snake_case
+    private Integer placarCasa;
     @Column(name = "placar_visitante")
-    private Integer placarVisitante; // Coluna snake_case
+    private Integer placarVisitante;
     @Column(length = 50)
     private String status;
 

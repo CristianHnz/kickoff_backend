@@ -2,16 +2,18 @@ package com.kickoff.api.model.match;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data; /* ... (imports) ... */
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "campeonato") // ATUALIZADO (era 'campeonatos')
+@Table(name = "campeonato")
 public class Campeonato {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,9 +23,9 @@ public class Campeonato {
     @Column(nullable = false)
     private Integer ano;
     @Column(name = "data_inicio", nullable = false)
-    private LocalDate dataInicio; // Coluna snake_case
+    private LocalDate dataInicio;
     @Column(name = "data_fim", nullable = false)
-    private LocalDate dataFim; // Coluna snake_case
+    private LocalDate dataFim;
     @Column(length = 50)
     private String status;
 

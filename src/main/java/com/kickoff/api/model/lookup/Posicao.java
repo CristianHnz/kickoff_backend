@@ -1,15 +1,17 @@
 package com.kickoff.api.model.lookup;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "posicao") // ATUALIZADO (era 'posicoes')
+@Table(name = "posicao")
 public class Posicao {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

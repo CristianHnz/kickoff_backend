@@ -1,18 +1,19 @@
-// src/main/java/com/kickoff/api/model/core/Pessoa.java
 package com.kickoff.api.model.core;
 
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.lookup.TipoPessoa;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data; /* ... (imports) ... */
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -30,12 +31,12 @@ public class Pessoa {
     @Column(unique = true)
     private String email;
     private String telefone;
-    @ManyToOne@JoinColumn(name = "tipo_pessoa")
+    @ManyToOne
+    @JoinColumn(name = "tipo_pessoa")
     private TipoPessoa tipoPessoa;
     @CreationTimestamp
     @Column(name = "data_cadastro", updatable = false)
     private LocalDateTime dataCadastro;
-
     @OneToOne(mappedBy = "pessoa", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Usuario usuario;
 }

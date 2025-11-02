@@ -3,17 +3,19 @@ package com.kickoff.api.model.core;
 import com.kickoff.api.model.auth.Usuario;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "equipe") // ATUALIZADO (era 'equipes')
+@Table(name = "equipe")
 public class Equipe {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +26,7 @@ public class Equipe {
     private String estado;
     @CreationTimestamp
     @Column(name = "data_criacao", updatable = false)
-    private LocalDateTime dataCriacao; // Coluna snake_case
+    private LocalDateTime dataCriacao;
     @ManyToOne
     @JoinColumn(name = "id_administrador")
     private Usuario administrador;

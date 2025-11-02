@@ -3,17 +3,19 @@ package com.kickoff.api.model.role;
 import com.kickoff.api.model.core.Pessoa;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "arbitro") // ATUALIZADO (era 'arbitros')
+@Table(name = "arbitro")
 public class Arbitro {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

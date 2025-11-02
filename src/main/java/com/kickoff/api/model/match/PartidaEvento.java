@@ -4,17 +4,18 @@ import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.role.Jogador;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data; /* ... (imports) ... */
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-// @Table(name = "partidaEvento") REMOVIDO! Spring agora acerta sozinho.
 public class PartidaEvento {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,5 +35,5 @@ public class PartidaEvento {
     private String descricao;
     @CreationTimestamp
     @Column(name = "data_hora_registro", updatable = false)
-    private LocalDateTime dataHoraRegistro; // Coluna snake_case
+    private LocalDateTime dataHoraRegistro;
 }
