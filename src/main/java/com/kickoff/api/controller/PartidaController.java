@@ -2,6 +2,7 @@ package com.kickoff.api.controller;
 
 import com.kickoff.api.dto.match.PartidaDTO;
 import com.kickoff.api.dto.match.PartidaResponseDTO;
+import com.kickoff.api.dto.match.PartidaResultadoDTO;
 import com.kickoff.api.mapper.PartidaMapper;
 import com.kickoff.api.model.match.Partida;
 import com.kickoff.api.service.PartidaService;
@@ -98,6 +99,24 @@ public class PartidaController {
                     .body("Não é possível excluir a partida. Ela já está associada a eventos ou avaliações.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao excluir partida.");
+        }
+    }
+
+    @PatchMapping("/{id}/resultado")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> atualizarResultado(
+            @PathVariable Long id,
+            @Valid @RequestBody PartidaResultadoDTO dto) {
+
+        try {
+            Partida partidaAtualizada = partidaService.atualizarResultado(id, dto);
+            PartidaResponseDTO responseDTO = partidaMapper.toPartidaResponseDTO(partidaAtualizada);
+            return ResponseEntity.ok(responseDTO);
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 }

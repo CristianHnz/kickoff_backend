@@ -1,6 +1,7 @@
 package com.kickoff.api.service;
 
 import com.kickoff.api.dto.match.PartidaDTO;
+import com.kickoff.api.dto.match.PartidaResultadoDTO;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.match.Campeonato;
 import com.kickoff.api.model.match.Partida;
@@ -124,5 +125,14 @@ public class PartidaService {
     public void deletarPartida(Long id) {
         Partida partida = buscarPartidaPorId(id);
         partidaRepository.delete(partida);
+    }
+
+    @Transactional
+    public Partida atualizarResultado(Long id, PartidaResultadoDTO dto) {
+        Partida partidaExistente = buscarPartidaPorId(id); // Reutiliza o método que já lança 404
+        partidaExistente.setPlacarCasa(dto.placarCasa());
+        partidaExistente.setPlacarVisitante(dto.placarVisitante());
+        partidaExistente.setStatus(dto.status());
+        return partidaRepository.save(partidaExistente);
     }
 }
