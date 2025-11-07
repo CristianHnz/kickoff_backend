@@ -5,6 +5,7 @@ import com.kickoff.api.dto.role.JogadorResponseDTO;
 import com.kickoff.api.mapper.JogadorMapper;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.role.Jogador;
+import com.kickoff.api.repository.role.JogadorRepository;
 import com.kickoff.api.service.JogadorService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -24,9 +25,10 @@ public class JogadorController {
 
     @Autowired
     private JogadorService jogadorService;
-
     @Autowired
     private JogadorMapper jogadorMapper;
+    @Autowired
+    private JogadorRepository jogadorRepository;
 
     @PostMapping("/equipes/{equipeId}/jogadores")
     @PreAuthorize("hasRole('GESTOR_EQUIPE')")
@@ -122,5 +124,29 @@ public class JogadorController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao excluir jogador.");
         }
+    }
+
+    @GetMapping("/jogadores/sem-equipe")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<List<JogadorResponseDTO>> listarJogadoresSemEquipe() {
+        List<Jogador> jogadores = jogadorService.listarJogadoresSemEquipe();
+        List<JogadorResponseDTO> responseDTOs = jogadorMapper.toJogadorResponseDTOList(jogadores);
+        return ResponseEntity.ok(responseDTOs);
+    }
+
+    @GetMapping("/sem-equipe")
+    public List<JogadorResponseDTO> listarSemEquipe() {
+        var jogadores = jogadorRepository.findByEquipeIsNull();
+        return jogadores.stream()
+                .map(j -> new JogadorResponseDTO(
+                        j.getId(),
+                        j.getPessoa().getId(),
+                        j.getPessoa().getNome(),
+                        j.getPessoa().getEmail(),
+                        j.getNumeroCamisa(),
+                        null,
+                        j.getPosicoes()
+                ))
+                .toList();
     }
 }

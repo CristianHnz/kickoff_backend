@@ -60,7 +60,6 @@ public class JogadorService {
         novoJogador.setEquipe(equipe);
         novoJogador.setNumeroCamisa(dto.numeroCamisa());
         novoJogador.setPosicoes(posicoes);
-
         return jogadorRepository.save(novoJogador);
     }
 
@@ -79,7 +78,6 @@ public class JogadorService {
         if (!jogador.getEquipe().getAdministrador().getId().equals(administrador.getId())) {
             throw new AccessDeniedException("Você não tem permissão para ver este jogador.");
         }
-
         return jogador;
     }
 
@@ -87,34 +85,27 @@ public class JogadorService {
     public Jogador updateJogador(Long jogadorId, JogadorDTO dto, Usuario administrador) {
         Jogador jogador = jogadorRepository.findById(jogadorId)
                 .orElseThrow(() -> new EntityNotFoundException("Vínculo de jogador não encontrado."));
-
         if (!jogador.getEquipe().getAdministrador().getId().equals(administrador.getId())) {
             throw new AccessDeniedException("Você não tem permissão para editar este jogador.");
         }
-
         if (!jogador.getPessoa().getEmail().equals(dto.emailJogador())) {
             Pessoa novaPessoaJogador = pessoaRepository.findByEmail(dto.emailJogador())
                     .orElseThrow(() -> new EntityNotFoundException("Nenhum jogador encontrado com o novo email: " + dto.emailJogador()));
-
             if (!novaPessoaJogador.getTipoPessoa().getDescricao().equals("JOGADOR")) {
                 throw new IllegalArgumentException("Esta pessoa não está cadastrada como JOGADOR.");
             }
-
             Optional<Jogador> vinculoExistente = jogadorRepository.findByPessoa(novaPessoaJogador);
             if (vinculoExistente.isPresent() && !vinculoExistente.get().getId().equals(jogadorId)) {
                 throw new IllegalArgumentException("O novo jogador (email) já está alocado em outra equipe.");
             }
             jogador.setPessoa(novaPessoaJogador);
         }
-
         Set<Posicao> posicoes = new HashSet<>(posicaoRepository.findAllById(dto.posicoesIds()));
         if (posicoes.size() != dto.posicoesIds().size()) {
             throw new EntityNotFoundException("Uma ou mais posições não foram encontradas.");
         }
         jogador.setPosicoes(posicoes);
-
         jogador.setNumeroCamisa(dto.numeroCamisa());
-
         return jogadorRepository.save(jogador);
     }
 
@@ -126,5 +117,10 @@ public class JogadorService {
             throw new AccessDeniedException("Você não tem permissão para excluir este jogador.");
         }
         jogadorRepository.delete(jogador);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Jogador> listarJogadoresSemEquipe() {
+        return jogadorRepository.findByEquipeIsNull();
     }
 }

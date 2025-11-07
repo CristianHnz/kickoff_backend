@@ -1,9 +1,12 @@
 package com.kickoff.api.repository.role;
 
+import com.kickoff.api.model.core.Pessoa;
 import com.kickoff.api.model.role.ComissaoTecnica;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.Optional;
 
-@Repository
 public interface ComissaoTecnicaRepository extends JpaRepository<ComissaoTecnica, Long> {
+    List<ComissaoTecnica> findByEquipeId(Long equipeId);
+    Optional<ComissaoTecnica> findByPessoa(Pessoa pessoa);
 }

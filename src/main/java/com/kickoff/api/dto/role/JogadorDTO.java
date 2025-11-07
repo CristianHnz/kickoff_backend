@@ -1,4 +1,3 @@
-// src/main/java/com/kickoff/api/dto/role/JogadorDTO.java
 package com.kickoff.api.dto.role;
 
 import jakarta.validation.constraints.Email;
@@ -12,10 +11,8 @@ public record JogadorDTO(
         @NotBlank(message = "O email do jogador é obrigatório para encontrá-lo")
         @Email
         String emailJogador,
-
         @NotNull(message = "O número da camisa é obrigatório")
         Integer numeroCamisa,
-
         @NotEmpty(message = "O jogador deve ter pelo menos uma posição")
         Set<Long> posicoesIds
 ) {

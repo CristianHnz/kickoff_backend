@@ -15,13 +15,17 @@ public class JogadorMapper {
             return null;
         }
 
+        String nomeEquipe = (jogador.getEquipe() != null)
+                ? jogador.getEquipe().getNome()
+                : null;
+
         return new JogadorResponseDTO(
                 jogador.getId(),
                 jogador.getPessoa().getId(),
                 jogador.getPessoa().getNome(),
                 jogador.getPessoa().getEmail(),
                 jogador.getNumeroCamisa(),
-                jogador.getEquipe().getNome(),
+                nomeEquipe,
                 jogador.getPosicoes()
         );
     }

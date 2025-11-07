@@ -3,7 +3,9 @@ package com.kickoff.api.service;
 import com.kickoff.api.dto.core.EquipeDTO;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Equipe;
+import com.kickoff.api.model.role.Jogador;
 import com.kickoff.api.repository.core.EquipeRepository;
+import com.kickoff.api.repository.role.JogadorRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,8 @@ public class EquipeService {
 
     @Autowired
     private EquipeRepository equipeRepository;
+    @Autowired
+    private JogadorRepository jogadorRepository;
 
     @Transactional
     public Equipe criarEquipe(EquipeDTO dto, Usuario administrador) {
@@ -65,5 +69,20 @@ public class EquipeService {
         Equipe equipe = equipeRepository.findByIdAndAdministrador(id, administrador)
                 .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada ou você não tem permissão para excluí-la."));
         equipeRepository.delete(equipe);
+    }
+
+    @Transactional
+    public void vincularJogadorSemEquipe(Long equipeId, Long jogadorId, Usuario administrador) {
+        Equipe equipe = buscarEquipePorIdEAdministrador(equipeId, administrador)
+                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada para este administrador."));
+
+        Jogador jogador = jogadorRepository.findByIdAndEquipeIsNull(jogadorId)
+                .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado ou já possui equipe."));
+
+        if (jogador.getEquipe() != null) {
+            throw new IllegalArgumentException("Este jogador já está vinculado a uma equipe.");
+        }
+        jogador.setEquipe(equipe);
+        jogadorRepository.save(jogador);
     }
 }

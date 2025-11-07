@@ -1,9 +1,6 @@
 package com.kickoff.api.controller;
 
-import com.kickoff.api.model.auth.Usuario;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,23 +9,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/test")
 public class TestController {
 
-    @GetMapping("/hello")
-    public ResponseEntity<String> getHelloMessage() {
+    @GetMapping("/all")
+    public String allAccess() {
+        return "Olá! Esta é uma rota pública (mas autenticada).";
+    }
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    @GetMapping("/jogador")
+    @PreAuthorize("hasRole('JOGADOR')")
+    public String jogadorAccess() {
+        return "Olá Jogador!";
+    }
 
-        Usuario usuarioLogado = (Usuario) authentication.getPrincipal();
-
-        String nomeDoUsuario = usuarioLogado.getPessoa().getNome();
-        String roleDoUsuario = usuarioLogado.getRole();
-
-        String mensagem = String.format(
-                "Olá, %s! Você está autenticado com sucesso. O seu email é %s e a sua permissão é %s.",
-                nomeDoUsuario,
-                usuarioLogado.getUsername(),
-                roleDoUsuario
-        );
-
-        return ResponseEntity.ok(mensagem);
+    @GetMapping("/gestor")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public String gestorAccess() {
+        return "Olá Gestor!";
     }
 }

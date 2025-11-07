@@ -1,9 +1,9 @@
-// src/main/java/com/kickoff/api/controller/EquipeController.java
 package com.kickoff.api.controller;
 
 import com.kickoff.api.dto.core.EquipeDTO;
-import com.kickoff.api.dto.core.EquipeResponseDTO; // IMPORTADO
-import com.kickoff.api.mapper.EquipeMapper; // IMPORTADO
+import com.kickoff.api.dto.core.EquipeResponseDTO;
+import com.kickoff.api.dto.role.VincularJogadorExistenteRequest;
+import com.kickoff.api.mapper.EquipeMapper;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.service.EquipeService;
@@ -104,6 +104,30 @@ public class EquipeController {
                     .body("Não é possível excluir a equipe. Ela já está associada a jogadores ou partidas.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao excluir equipe.");
+        }
+    }
+
+    @PostMapping("/{id}/jogadores/existente")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<?> vincularJogadorSemEquipe(
+            @PathVariable Long id,
+            @RequestBody @Valid VincularJogadorExistenteRequest body,
+            Authentication authentication
+    ) {
+        Usuario usuarioLogado = (Usuario) authentication.getPrincipal();
+        try {
+            equipeService.vincularJogadorSemEquipe(id, body.jogadorId(), usuarioLogado);
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao vincular jogador à equipe.");
         }
     }
 }

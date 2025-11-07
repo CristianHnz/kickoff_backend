@@ -1,0 +1,24 @@
+package com.kickoff.api.dto.core; // (ou onde preferir)
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
+
+public record GestorCadastroDTO(
+        @NotBlank(message = "Nome é obrigatório")
+        String nome,
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
+        String email,
+        String cpf,
+        String telefone,
+        LocalDate dataNascimento,
+        @NotBlank(message = "Senha é obrigatória")
+        @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+        String senha,
+        @NotBlank(message = "Tipo de pessoa é obrigatório")
+        String tipoPessoa
+) {
+}

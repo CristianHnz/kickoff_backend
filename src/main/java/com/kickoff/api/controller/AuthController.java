@@ -4,13 +4,16 @@ import com.kickoff.api.dto.AuthCadastroDTO;
 import com.kickoff.api.dto.AuthResponseDTO;
 import com.kickoff.api.dto.LoginDTO;
 import com.kickoff.api.dto.TokenDTO;
+import com.kickoff.api.dto.core.GestorCadastroDTO;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.service.AuthService;
 import com.kickoff.api.service.TokenService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -48,6 +51,21 @@ public class AuthController {
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Email ou senha inválidos.");
+        }
+    }
+
+    @PostMapping("/gestor/register")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<?> registrarUsuarioPeloGestor(@Valid @RequestBody GestorCadastroDTO dto) {
+        try {
+            AuthResponseDTO response = authService.registrarPeloGestor(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno ao registrar usuário.");
         }
     }
 }

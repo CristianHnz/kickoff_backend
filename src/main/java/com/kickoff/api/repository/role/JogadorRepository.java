@@ -3,6 +3,7 @@ package com.kickoff.api.repository.role;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.core.Pessoa;
 import com.kickoff.api.model.role.Jogador;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,4 +19,6 @@ public interface JogadorRepository extends JpaRepository<Jogador, Long> {
     List<Jogador> findByEquipe(Equipe equipe);
     @Query("SELECT j FROM Jogador j JOIN FETCH j.posicoes WHERE j.id = :id")
     Optional<Jogador> findByIdWithPosicoes(@Param("id") Long id);
+    List<Jogador> findByEquipeIsNull();
+    Optional<Jogador> findByIdAndEquipeIsNull(Long id);
 }
