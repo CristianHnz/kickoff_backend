@@ -8,43 +8,31 @@ import com.kickoff.api.model.match.Partida;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class PartidaMapper {
 
-    public PartidaResponseDTO toPartidaResponseDTO(Partida partida) {
-        if (partida == null) {
-            return null;
-        }
+    public PartidaResponseDTO toPartidaResponseDTO(Partida p) {
+        if (p == null) return null;
 
-        PartidaCampeonatoDTO campeonatoDTO = new PartidaCampeonatoDTO(
-                partida.getCampeonato().getId(),
-                partida.getCampeonato().getNome()
-        );
+        PartidaCampeonatoDTO campeonatoDTO = (p.getCampeonato() != null)
+                ? new PartidaCampeonatoDTO(p.getCampeonato().getId(), p.getCampeonato().getNome())
+                : null;
 
-        PartidaEquipeDTO equipeCasaDTO = new PartidaEquipeDTO(
-                partida.getEquipeCasa().getId(),
-                partida.getEquipeCasa().getNome()
-        );
+        PartidaEquipeDTO equipeCasaDTO = new PartidaEquipeDTO(p.getEquipeCasa().getId(), p.getEquipeCasa().getNome());
+        PartidaEquipeDTO equipeVisitanteDTO = new PartidaEquipeDTO(p.getEquipeVisitante().getId(), p.getEquipeVisitante().getNome());
 
-        PartidaEquipeDTO equipeVisitanteDTO = new PartidaEquipeDTO(
-                partida.getEquipeVisitante().getId(),
-                partida.getEquipeVisitante().getNome()
-        );
-
-        PartidaArbitroDTO arbitroDTO = new PartidaArbitroDTO(
-                partida.getArbitro().getId(),
-                partida.getArbitro().getPessoa().getNome() // Pega o nome da Pessoa associada
-        );
+        PartidaArbitroDTO arbitroDTO = (p.getArbitro() != null)
+                ? new PartidaArbitroDTO(p.getArbitro().getId(), p.getArbitro().getPessoa().getNome())
+                : null;
 
         return new PartidaResponseDTO(
-                partida.getId(),
-                partida.getDataHora(),
-                partida.getLocal(),
-                partida.getStatus(),
-                partida.getPlacarCasa(),
-                partida.getPlacarVisitante(),
+                p.getId(),
+                p.getDataHora(),
+                p.getLocal(),
+                (p.getStatus() != null ? p.getStatus() : null),
+                p.getPlacarCasa(),
+                p.getPlacarVisitante(),
                 campeonatoDTO,
                 equipeCasaDTO,
                 equipeVisitanteDTO,
@@ -53,8 +41,6 @@ public class PartidaMapper {
     }
 
     public List<PartidaResponseDTO> toPartidaResponseDTOList(List<Partida> partidas) {
-        return partidas.stream()
-                .map(this::toPartidaResponseDTO)
-                .collect(Collectors.toList());
+        return partidas.stream().map(this::toPartidaResponseDTO).toList();
     }
 }

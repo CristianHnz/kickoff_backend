@@ -3,10 +3,10 @@ import com.kickoff.api.model.lookup.Posicao;
 import java.util.Set;
 
 public record JogadorResponseDTO(
-        Long idJogador,
-        Long idPessoa,
-        String nome,
-        String email,
+        Long id,
+        Long pessoaId,
+        String nomePessoa,
+        String emailPessoa,
         Integer numeroCamisa,
         String nomeEquipe,
         Set<Posicao> posicoes

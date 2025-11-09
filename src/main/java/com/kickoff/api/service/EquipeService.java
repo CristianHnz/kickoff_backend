@@ -85,4 +85,9 @@ public class EquipeService {
         jogador.setEquipe(equipe);
         jogadorRepository.save(jogador);
     }
+
+    public List<Equipe> listarTodas() {
+        return equipeRepository.findAll();
+    }
+
 }

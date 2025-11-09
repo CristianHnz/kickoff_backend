@@ -1,12 +1,14 @@
 package com.kickoff.api.dto.match;
 
+import com.kickoff.api.model.match.PartidaStatus;
+
 import java.time.LocalDateTime;
 
 public record PartidaResponseDTO(
         Long id,
         LocalDateTime dataHora,
         String local,
-        String status,
+        PartidaStatus status,
         Integer placarCasa,
         Integer placarVisitante,
         PartidaCampeonatoDTO campeonato,

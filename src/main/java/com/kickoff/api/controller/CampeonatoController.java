@@ -1,6 +1,7 @@
 package com.kickoff.api.controller;
 
 import com.kickoff.api.dto.match.CampeonatoDTO;
+import com.kickoff.api.dto.match.CampeonatoEquipesRequest;
 import com.kickoff.api.model.match.Campeonato;
 import com.kickoff.api.service.CampeonatoService;
 import jakarta.persistence.EntityNotFoundException;
@@ -22,7 +23,7 @@ public class CampeonatoController {
     private CampeonatoService campeonatoService;
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()") // Qualquer utilizador autenticado pode criar
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> criarCampeonato(@Valid @RequestBody CampeonatoDTO dto) {
         try {
             Campeonato novoCampeonato = campeonatoService.criarCampeonato(dto);
@@ -33,14 +34,14 @@ public class CampeonatoController {
     }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()") // Qualquer utilizador autenticado pode ver
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Campeonato>> listarCampeonatos() {
         List<Campeonato> campeonatos = campeonatoService.listarCampeonatos();
         return ResponseEntity.ok(campeonatos);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()") // Qualquer utilizador autenticado pode ver
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> buscarCampeonatoPorId(@PathVariable Long id) {
         try {
             Campeonato campeonato = campeonatoService.buscarCampeonatoPorId(id);
@@ -81,6 +82,39 @@ public class CampeonatoController {
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao excluir campeonato.");
+        }
+    }
+
+    @PostMapping("/{id}/equipes")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<?> adicionarEquipesAoCampeonato(
+            @PathVariable Long id,
+            @Valid @RequestBody CampeonatoEquipesRequest body
+    ) {
+        try {
+            campeonatoService.adicionarEquipes(id, body.equipeIds());
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao adicionar equipes.");
+        }
+    }
+
+    @PostMapping("/{id}/gerar-partidas")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<?> gerarPartidasTurnoUnico(@PathVariable Long id) {
+        try {
+            int qtd = campeonatoService.gerarPartidasTurnoUnico(id);
+            return ResponseEntity.ok("Partidas geradas: " + qtd);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao gerar partidas.");
         }
     }
 }

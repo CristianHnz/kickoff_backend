@@ -1,18 +1,22 @@
 package com.kickoff.api.service;
 
+import com.kickoff.api.dto.role.JogadorCadastroDTO;
 import com.kickoff.api.dto.role.JogadorDTO;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.core.Pessoa;
 import com.kickoff.api.model.lookup.Posicao;
+import com.kickoff.api.model.lookup.TipoPessoa;
 import com.kickoff.api.model.role.Jogador;
 import com.kickoff.api.repository.core.EquipeRepository;
 import com.kickoff.api.repository.core.PessoaRepository;
 import com.kickoff.api.repository.lookup.PosicaoRepository;
+import com.kickoff.api.repository.lookup.TipoPessoaRepository;
 import com.kickoff.api.repository.role.JogadorRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,10 +36,13 @@ public class JogadorService {
     private JogadorRepository jogadorRepository;
     @Autowired
     private PosicaoRepository posicaoRepository;
+    @Autowired
+    private TipoPessoaRepository tipoPessoaRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Transactional
     public Jogador adicionarJogador(Long equipeId, JogadorDTO dto, Usuario administrador) {
-
         Equipe equipe = equipeRepository.findByIdAndAdministrador(equipeId, administrador)
                 .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada ou você não tem permissão sobre ela."));
 
@@ -122,5 +129,78 @@ public class JogadorService {
     @Transactional(readOnly = true)
     public List<Jogador> listarJogadoresSemEquipe() {
         return jogadorRepository.findByEquipeIsNull();
+    }
+
+    @Transactional
+    public Jogador criarJogadorSemEquipe(JogadorDTO dto) {
+        Pessoa pessoaJogador = pessoaRepository.findByEmail(dto.emailJogador())
+                .orElseThrow(() -> new EntityNotFoundException("Nenhum jogador encontrado com o email: " + dto.emailJogador()));
+
+        if (!pessoaJogador.getTipoPessoa().getDescricao().equals("JOGADOR")) {
+            throw new IllegalArgumentException("Esta pessoa não está cadastrada como JOGADOR.");
+        }
+
+        // Verifica se já existe jogador vinculado à pessoa
+        jogadorRepository.findByPessoa(pessoaJogador).ifPresent(j -> {
+            throw new IllegalArgumentException("Este jogador já está vinculado a uma equipe.");
+        });
+
+        Set<Posicao> posicoes = new HashSet<>(posicaoRepository.findAllById(dto.posicoesIds()));
+        if (posicoes.size() != dto.posicoesIds().size()) {
+            throw new EntityNotFoundException("Uma ou mais posições não foram encontradas.");
+        }
+
+        Jogador novo = new Jogador();
+        novo.setPessoa(pessoaJogador);
+        novo.setEquipe(null); // Sem vínculo
+        novo.setNumeroCamisa(dto.numeroCamisa());
+        novo.setPosicoes(posicoes);
+
+        return jogadorRepository.save(novo);
+    }
+
+    @Transactional
+    public Jogador registrarJogadorCompleto(JogadorCadastroDTO dto) {
+        if (pessoaRepository.findByEmail(dto.email()).isPresent()) {
+            throw new IllegalArgumentException("Email já está em uso.");
+        }
+        if (dto.cpf() != null && !dto.cpf().isBlank()) {
+            if (pessoaRepository.findByCpf(dto.cpf()).isPresent()) {
+                throw new IllegalArgumentException("CPF já está em uso.");
+            }
+        }
+
+        TipoPessoa tipoPessoa = tipoPessoaRepository.findByDescricao("JOGADOR")
+                .orElseThrow(() -> new EntityNotFoundException("Tipo de pessoa 'JOGADOR' não encontrado."));
+
+        Pessoa pessoa = new Pessoa();
+        pessoa.setNome(dto.nome());
+        pessoa.setEmail(dto.email());
+        pessoa.setCpf(dto.cpf());
+        pessoa.setTelefone(dto.telefone());
+        pessoa.setDataNascimento(dto.dataNascimento());
+        pessoa.setTipoPessoa(tipoPessoa);
+
+        Usuario usuario = new Usuario();
+        usuario.setRole("ROLE_JOGADOR");
+        usuario.setPassword(passwordEncoder.encode(dto.senha()));
+
+        pessoa.setUsuario(usuario);
+        usuario.setPessoa(pessoa);
+
+        Pessoa pessoaSalva = pessoaRepository.save(pessoa);
+
+        var posicoes = new HashSet<>(posicaoRepository.findAllById(dto.posicoesIds()));
+        if (posicoes.size() != dto.posicoesIds().size()) {
+            throw new EntityNotFoundException("Uma ou mais posições não foram encontradas.");
+        }
+
+        Jogador jogador = new Jogador();
+        jogador.setPessoa(pessoaSalva);
+        jogador.setEquipe(null);
+        jogador.setNumeroCamisa(dto.numeroCamisa());
+        jogador.setPosicoes(posicoes);
+
+        return jogadorRepository.save(jogador);
     }
 }

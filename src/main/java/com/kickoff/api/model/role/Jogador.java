@@ -25,7 +25,7 @@ public class Jogador {
     @OneToOne(optional = false)
     @JoinColumn(name = "pessoa_id", unique = true, nullable = false)
     private Pessoa pessoa;
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = true)
     @JoinColumn(name = "equipe_id", nullable = true)
     private Equipe equipe;
     @Column(name = "numero_camisa")

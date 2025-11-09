@@ -130,4 +130,13 @@ public class EquipeController {
                     .body("Erro ao vincular jogador à equipe.");
         }
     }
+
+    @GetMapping("/all")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<EquipeResponseDTO>> listarTodasEquipes() {
+        var equipes = equipeService.listarTodas();
+        var dtos = equipeMapper.toEquipeResponseDTOList(equipes);
+        return ResponseEntity.ok(dtos);
+    }
+
 }

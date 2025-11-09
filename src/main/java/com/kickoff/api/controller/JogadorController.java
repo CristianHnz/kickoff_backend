@@ -1,5 +1,6 @@
 package com.kickoff.api.controller;
 
+import com.kickoff.api.dto.role.JogadorCadastroDTO;
 import com.kickoff.api.dto.role.JogadorDTO;
 import com.kickoff.api.dto.role.JogadorResponseDTO;
 import com.kickoff.api.mapper.JogadorMapper;
@@ -149,4 +150,36 @@ public class JogadorController {
                 ))
                 .toList();
     }
+
+    @PostMapping("/jogadores")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<?> criarJogadorSemEquipe(@Valid @RequestBody JogadorDTO dto) {
+        try {
+            Jogador novoJogador = jogadorService.criarJogadorSemEquipe(dto);
+            JogadorResponseDTO response = jogadorMapper.toJogadorResponseDTO(novoJogador);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao cadastrar jogador.");
+        }
+    }
+
+    @PostMapping("/jogadores/registrar")
+    public ResponseEntity<?> registrarJogadorCompleto(@Valid @RequestBody JogadorCadastroDTO dto) {
+        try {
+            Jogador novo = jogadorService.registrarJogadorCompleto(dto);
+            JogadorResponseDTO responseDTO = jogadorMapper.toJogadorResponseDTO(novo);
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao cadastrar jogador.");
+        }
+    }
+
 }

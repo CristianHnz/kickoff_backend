@@ -5,7 +5,7 @@ import com.kickoff.api.model.lookup.TipoPessoa;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional; // Certifique-se de que o java.util.Optional está importado
+import java.util.Optional;
 
 @Repository
 public interface TipoPessoaRepository extends JpaRepository<TipoPessoa, Long> {

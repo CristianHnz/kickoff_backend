@@ -34,7 +34,7 @@ public class AvaliacaoService {
         Jogador jogador = jogadorRepository.findById(dto.jogadorId())
                 .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado."));
 
-        if (!"FINALIZADA".equalsIgnoreCase(partida.getStatus())) {
+        if (!"FINALIZADA".equalsIgnoreCase(partida.getStatus().toString())) {
             throw new IllegalArgumentException("A avaliação só pode ser feita após a partida estar 'FINALIZADA'.");
         }
 
@@ -99,7 +99,7 @@ public class AvaliacaoService {
         Jogador jogador = jogadorRepository.findById(dto.jogadorId())
                 .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado."));
 
-        if (!"FINALIZADA".equalsIgnoreCase(partida.getStatus())) {
+        if (!"FINALIZADA".equalsIgnoreCase(partida.getStatus().toString())) {
             throw new IllegalArgumentException("A avaliação só pode ser feita após a partida estar 'FINALIZADA'.");
         }
         boolean jogadorParticipou = partida.getEquipeCasa().getId().equals(jogador.getEquipe().getId()) ||

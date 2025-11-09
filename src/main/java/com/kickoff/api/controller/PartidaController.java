@@ -3,8 +3,10 @@ package com.kickoff.api.controller;
 import com.kickoff.api.dto.match.PartidaDTO;
 import com.kickoff.api.dto.match.PartidaResponseDTO;
 import com.kickoff.api.dto.match.PartidaResultadoDTO;
+import com.kickoff.api.dto.match.PartidaUpdateDTO;
 import com.kickoff.api.mapper.PartidaMapper;
 import com.kickoff.api.model.match.Partida;
+import com.kickoff.api.model.match.PartidaStatus;
 import com.kickoff.api.service.PartidaService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -119,4 +121,57 @@ public class PartidaController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+    @PatchMapping("/{id}/confirmar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> confirmarPartida(@PathVariable Long id) {
+        return atualizarStatus(id, PartidaStatus.CONFIRMADA);
+    }
+
+    @PatchMapping("/{id}/iniciar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> iniciarPartida(@PathVariable Long id) {
+        return atualizarStatus(id, PartidaStatus.EM_ANDAMENTO);
+    }
+
+    @PatchMapping("/{id}/finalizar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> finalizarPartida(@PathVariable Long id) {
+        return atualizarStatus(id, PartidaStatus.FINALIZADA);
+    }
+
+    @PatchMapping("/{id}/cancelar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> cancelarPartida(@PathVariable Long id) {
+        return atualizarStatus(id, PartidaStatus.CANCELADA);
+    }
+
+    private ResponseEntity<?> atualizarStatus(Long id, PartidaStatus novoStatus) {
+        try {
+            Partida partidaAtualizada = partidaService.atualizarStatus(id, novoStatus);
+            return ResponseEntity.ok(partidaMapper.toPartidaResponseDTO(partidaAtualizada));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<?> editarParcial(
+            @PathVariable Long id,
+            @RequestBody PartidaUpdateDTO dto
+    ) {
+        try {
+            Partida p = partidaService.editarParcial(id, dto);
+            return ResponseEntity.ok(partidaMapper.toPartidaResponseDTO(p));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+
 }

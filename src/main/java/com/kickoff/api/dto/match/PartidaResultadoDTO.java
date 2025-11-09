@@ -1,19 +1,12 @@
+// src/main/java/com/kickoff/api/dto/match/PartidaResultadoDTO.java
 package com.kickoff.api.dto.match;
 
+import com.kickoff.api.model.match.PartidaStatus;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record PartidaResultadoDTO(
-        @NotNull(message = "O placar da casa é obrigatório")
-        @Min(value = 0, message = "O placar não pode ser negativo")
-        Integer placarCasa,
-
-        @NotNull(message = "O placar visitante é obrigatório")
-        @Min(value = 0, message = "O placar não pode ser negativo")
-        Integer placarVisitante,
-
-        @NotBlank(message = "O status da partida é obrigatório")
-        String status
-) {
-}
+        @NotNull @Min(0) Integer placarCasa,
+        @NotNull @Min(0) Integer placarVisitante,
+        @NotNull PartidaStatus status
+) {}
