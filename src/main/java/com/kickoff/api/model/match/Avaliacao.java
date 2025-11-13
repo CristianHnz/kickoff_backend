@@ -19,16 +19,17 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "avaliacao")
 public class Avaliacao {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "partida_id", nullable = false)
     private Partida partida;
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "jogador_id", nullable = false)
     private Jogador jogador;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "avaliador_id")
     private Pessoa avaliador;
     @Column(nullable = false, precision = 3, scale = 1)

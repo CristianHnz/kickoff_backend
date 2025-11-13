@@ -8,7 +8,8 @@ public enum PartidaStatus {
     CONFIRMADA,
     EM_ANDAMENTO,
     FINALIZADA,
-    CANCELADA;
+    CANCELADA,
+    WO;
 
     @JsonCreator
     public static PartidaStatus from(String value) {

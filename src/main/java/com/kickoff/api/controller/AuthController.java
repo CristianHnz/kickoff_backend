@@ -53,19 +53,4 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Email ou senha inválidos.");
         }
     }
-
-    @PostMapping("/gestor/register")
-    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
-    public ResponseEntity<?> registrarUsuarioPeloGestor(@Valid @RequestBody GestorCadastroDTO dto) {
-        try {
-            AuthResponseDTO response = authService.registrarPeloGestor(dto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno ao registrar usuário.");
-        }
-    }
 }

@@ -26,26 +26,26 @@ public class ComissaoTecnicaController {
     @Autowired
     private ComissaoTecnicaMapper mapper;
 
-    @GetMapping("/equipes/{equipeId}/comissao-tecnica")
-    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
-    public ResponseEntity<?> listarComissaoTecnica(
-            @PathVariable Long equipeId,
-            Authentication authentication) {
-
-        Usuario usuarioLogado = (Usuario) authentication.getPrincipal();
-
-        try {
-            List<ComissaoTecnicaResponseDTO> comissao =
-                    comissaoTecnicaService.listarComissaoPorEquipe(equipeId, usuarioLogado);
-            return ResponseEntity.ok(comissao);
-
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro ao listar comissão técnica: " + e.getMessage());
-        }
-    }
+//    @GetMapping("/equipes/{equipeId}/comissao-tecnica")
+//    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+//    public ResponseEntity<?> listarComissaoTecnica(
+//            @PathVariable Long equipeId,
+//            Authentication authentication) {
+//
+//        Usuario usuarioLogado = (Usuario) authentication.getPrincipal();
+//
+//        try {
+//            List<ComissaoTecnicaResponseDTO> comissao =
+//                    comissaoTecnicaService.listarComissaoPorEquipe(equipeId, usuarioLogado);
+//            return ResponseEntity.ok(comissao);
+//
+//        } catch (EntityNotFoundException e) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body("Erro ao listar comissão técnica: " + e.getMessage());
+//        }
+//    }
 
     @PostMapping("/equipes/{equipeId}/comissao-tecnica")
     @PreAuthorize("hasRole('GESTOR_EQUIPE')")

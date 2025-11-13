@@ -39,7 +39,7 @@ public class SecurityFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        filterChain.doFilter(request, response); // Continua para o próximo filtro
+        filterChain.doFilter(request, response);
     }
 
     private String recoverToken(HttpServletRequest request) {
@@ -47,6 +47,6 @@ public class SecurityFilter extends OncePerRequestFilter {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return null;
         }
-        return authHeader.substring(7); // Remove o "Bearer "
+        return authHeader.substring(7);
     }
 }

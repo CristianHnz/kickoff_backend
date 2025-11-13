@@ -103,18 +103,18 @@ public class CampeonatoController {
         }
     }
 
-    @PostMapping("/{id}/gerar-partidas")
-    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
-    public ResponseEntity<?> gerarPartidasTurnoUnico(@PathVariable Long id) {
-        try {
-            int qtd = campeonatoService.gerarPartidasTurnoUnico(id);
-            return ResponseEntity.ok("Partidas geradas: " + qtd);
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao gerar partidas.");
-        }
-    }
+//    @PostMapping("/{id}/gerar-partidas")
+//    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+//    public ResponseEntity<?> gerarPartidasTurnoUnico(@PathVariable Long id) {
+//        try {
+//            int qtd = campeonatoService.gerarPartidasTurnoUnico(id);
+//            return ResponseEntity.ok("Partidas geradas: " + qtd);
+//        } catch (EntityNotFoundException e) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+//        } catch (IllegalArgumentException e) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao gerar partidas.");
+//        }
+//    }
 }

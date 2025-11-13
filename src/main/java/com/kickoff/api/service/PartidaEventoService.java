@@ -4,6 +4,8 @@ import com.kickoff.api.dto.match.PartidaEventoDTO;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.match.Partida;
 import com.kickoff.api.model.match.PartidaEvento;
+import com.kickoff.api.model.match.PartidaEventoTipo;
+import com.kickoff.api.model.match.PartidaStatus;
 import com.kickoff.api.model.role.Jogador;
 import com.kickoff.api.repository.core.EquipeRepository;
 import com.kickoff.api.repository.match.PartidaEventoRepository;
@@ -15,57 +17,98 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PartidaEventoService {
 
-    @Autowired
-    private PartidaEventoRepository eventoRepository;
-    @Autowired
-    private PartidaRepository partidaRepository;
-    @Autowired
-    private JogadorRepository jogadorRepository;
-    @Autowired
-    private EquipeRepository equipeRepository;
+    @Autowired private PartidaRepository partidaRepository;
+    @Autowired private PartidaEventoRepository eventoRepository;
+    @Autowired private JogadorRepository jogadorRepository;
+    @Autowired private EquipeRepository equipeRepository;
 
     @Transactional
-    public PartidaEvento criarEvento(Long partidaId, PartidaEventoDTO dto) {
-        Partida partida = partidaRepository.findById(partidaId)
-                .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada."));
+    public void registrarEvento(PartidaEventoDTO dto) {
+        Partida partida = partidaRepository.findById(dto.partidaId())
+                .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada"));
 
-        Equipe equipe = equipeRepository.findById(dto.equipeId())
-                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada."));
+        if (partida.getStatus() == PartidaStatus.AGENDADA) {
+        }
 
-        Jogador jogador = null;
+        PartidaEvento evento = new PartidaEvento();
+        evento.setPartida(partida);
+
+        try {
+            evento.setTipoEvento(PartidaEventoTipo.valueOf(dto.tipoEvento()));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Tipo de evento inválido: " + dto.tipoEvento());
+        }
+
+        evento.setMinuto(dto.minuto());
+        evento.setDescricao(dto.descricao());
+
         if (dto.jogadorId() != null) {
-            jogador = jogadorRepository.findById(dto.jogadorId())
-                    .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado."));
-
-            if (!jogador.getEquipe().getId().equals(equipe.getId())) {
-                throw new IllegalArgumentException("O jogador informado não pertence à equipe selecionada.");
-            }
+            Jogador j = jogadorRepository.findById(dto.jogadorId())
+                    .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado"));
+            evento.setJogador(j);
         }
 
-        if (!partida.getEquipeCasa().getId().equals(equipe.getId()) && !partida.getEquipeVisitante().getId().equals(equipe.getId())) {
-            throw new IllegalArgumentException("A equipe informada não está participando desta partida.");
+        if (dto.equipeId() != null) {
+            Equipe e = equipeRepository.findById(dto.equipeId())
+                    .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada"));
+            evento.setEquipe(e);
         }
 
-        PartidaEvento novoEvento = new PartidaEvento();
-        novoEvento.setPartida(partida);
-        novoEvento.setEquipe(equipe);
-        novoEvento.setJogador(jogador); // Pode ser nulo
-        novoEvento.setTipoEvento(dto.tipoEvento());
-        novoEvento.setMinuto(dto.minuto());
-        novoEvento.setDescricao(dto.descricao());
+        if (dto.jogadorAssistenciaId() != null) {
+            evento.setJogadorAssistencia(jogadorRepository.getReferenceById(dto.jogadorAssistenciaId()));
+        }
+        if (dto.jogadorSubstituidoId() != null) {
+            evento.setJogadorSubstituido(jogadorRepository.getReferenceById(dto.jogadorSubstituidoId()));
+        }
 
-        return eventoRepository.save(novoEvento);
+        eventoRepository.save(evento);
+
+        atualizarPlacar(partida, evento);
     }
 
-    @Transactional(readOnly = true)
-    public List<PartidaEvento> listarEventosPorPartida(Long partidaId) {
-        Partida partida = partidaRepository.findById(partidaId)
-                .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada."));
+    private void atualizarPlacar(Partida partida, PartidaEvento evento) {
+        boolean mudouPlacar = false;
 
-        return eventoRepository.findByPartidaOrderByMinutoAsc(partida);
+        if (evento.getTipoEvento() == PartidaEventoTipo.GOL) {
+            if (evento.getEquipe().getId().equals(partida.getEquipeCasa().getId())) {
+                partida.setPlacarCasa(partida.getPlacarCasa() + 1);
+            } else {
+                partida.setPlacarVisitante(partida.getPlacarVisitante() + 1);
+            }
+            mudouPlacar = true;
+        }
+        else if (evento.getTipoEvento() == PartidaEventoTipo.GOL_CONTRA) {
+            if (evento.getEquipe().getId().equals(partida.getEquipeCasa().getId())) {
+                partida.setPlacarVisitante(partida.getPlacarVisitante() + 1);
+            } else {
+                partida.setPlacarCasa(partida.getPlacarCasa() + 1);
+            }
+            mudouPlacar = true;
+        }
+
+        if (mudouPlacar) {
+            partidaRepository.save(partida);
+        }
+    }
+
+    public List<PartidaEventoDTO> listarEventos(Long partidaId) {
+        return eventoRepository.findByPartidaIdOrderByMinutoAsc(partidaId).stream()
+                .map(e -> new PartidaEventoDTO(
+                        e.getId(),
+                        e.getPartida().getId(),
+                        e.getJogador() != null ? e.getJogador().getId() : null,
+                        e.getEquipe() != null ? e.getEquipe().getId() : null,
+                        e.getTipoEvento().name(),
+                        e.getMinuto(),
+                        e.getDescricao(),
+                        e.getJogadorAssistencia() != null ? e.getJogadorAssistencia().getId() : null,
+                        e.getJogadorSubstituido() != null ? e.getJogadorSubstituido().getId() : null
+                ))
+                .collect(Collectors.toList());
     }
 }

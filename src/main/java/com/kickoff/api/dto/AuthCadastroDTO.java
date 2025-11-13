@@ -2,7 +2,12 @@ package com.kickoff.api.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.br.CPF;
+
+import java.time.LocalDate;
+import java.util.List;
 
 public record AuthCadastroDTO(
         @NotBlank(message = "Nome é obrigatório")
@@ -17,5 +22,15 @@ public record AuthCadastroDTO(
         String senha,
 
         @NotBlank(message = "Tipo de pessoa é obrigatório")
-        String tipoPessoa // "JOGADOR", "TECNICO", etc.
-) {}
+        String tipoPessoa,
+        @NotBlank(message = "CPF é obrigatório")
+        @CPF(message = "CPF inválido")
+        String cpf,
+        @NotBlank(message = "Telefone é obrigatório")
+        String telefone,
+        @NotNull(message = "Data de Nascimento é obrigatória")
+        LocalDate dataNascimento,
+        List<String> posicoes,
+        String licencaCbf
+) {
+}

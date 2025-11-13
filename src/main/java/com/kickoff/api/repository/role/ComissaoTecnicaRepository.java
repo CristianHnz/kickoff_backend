@@ -7,6 +7,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ComissaoTecnicaRepository extends JpaRepository<ComissaoTecnica, Long> {
-    List<ComissaoTecnica> findByEquipeId(Long equipeId);
+//    List<ComissaoTecnica> findByEquipeId(Long equipeId);
     Optional<ComissaoTecnica> findByPessoa(Pessoa pessoa);
 }

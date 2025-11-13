@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class EquipeService {
@@ -24,70 +25,102 @@ public class EquipeService {
 
     @Transactional
     public Equipe criarEquipe(EquipeDTO dto, Usuario administrador) {
-
-        if (equipeRepository.findByNome(dto.nome()).isPresent()) {
-            throw new IllegalArgumentException("Uma equipe com este nome já existe.");
+        if (equipeRepository.existsByNome(dto.nome())) {
+            throw new IllegalArgumentException("Já existe uma equipe com o nome '" + dto.nome() + "'.");
         }
 
-        Equipe novaEquipe = new Equipe();
-        novaEquipe.setNome(dto.nome());
-        novaEquipe.setCidade(dto.cidade());
-        novaEquipe.setEstado(dto.estado());
+        if (equipeRepository.findByAdministradorId(administrador.getId()).isPresent()) {
+            throw new IllegalArgumentException("Você já possui uma equipe cadastrada.");
+        }
 
-        novaEquipe.setAdministrador(administrador);
+        Equipe equipe = new Equipe();
+        equipe.setNome(dto.nome());
+        equipe.setCidade(dto.cidade());
+        equipe.setEstado(dto.estado().toUpperCase());
+        equipe.setAdministrador(administrador);
 
-        return equipeRepository.save(novaEquipe);
+        return equipeRepository.save(equipe);
     }
 
-    @Transactional(readOnly = true)
-    public List<Equipe> buscarEquipesPorAdministrador(Usuario administrador) {
-        return equipeRepository.findByAdministrador(administrador);
+    public List<EquipeDTO> listarTodas() {
+        return equipeRepository.findAll().stream()
+                .map(equipe -> new EquipeDTO(
+                        equipe.getId(),
+                        equipe.getNome(),
+                        equipe.getCidade(),
+                        equipe.getEstado()
+                ))
+                .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public Optional<Equipe> buscarEquipePorIdEAdministrador(Long id, Usuario administrador) {
-        return equipeRepository.findByIdAndAdministrador(id, administrador);
+    public Equipe buscarEquipeDoGestor(Usuario gestor) {
+        return equipeRepository.findByAdministradorId(gestor.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Nenhuma equipe encontrada para este gestor."));
+    }
+
+    public Equipe buscarPorId(Long id) {
+        return equipeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada com id: " + id));
     }
 
     @Transactional
-    public Equipe atualizarEquipe(Long id, EquipeDTO dto, Usuario administrador) {
-        Equipe equipeExistente = equipeRepository.findByIdAndAdministrador(id, administrador)
-                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada ou você não tem permissão para editá-la."));
-
-        if (equipeRepository.findByNomeAndIdNot(dto.nome(), id).isPresent()) {
-            throw new IllegalArgumentException("O nome '" + dto.nome() + "' já está em uso por outra equipe.");
-        }
-        equipeExistente.setNome(dto.nome());
-        equipeExistente.setCidade(dto.cidade());
-        equipeExistente.setEstado(dto.estado());
-
-        return equipeRepository.save(equipeExistente);
+    public Equipe atualizar(Long id, EquipeDTO dto) {
+        Equipe equipe = buscarPorId(id);
+        equipe.setNome(dto.nome());
+        equipe.setCidade(dto.cidade());
+        equipe.setEstado(dto.estado());
+        return equipeRepository.save(equipe);
     }
 
-    @Transactional
-    public void deletarEquipe(Long id, Usuario administrador) {
-        Equipe equipe = equipeRepository.findByIdAndAdministrador(id, administrador)
-                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada ou você não tem permissão para excluí-la."));
-        equipeRepository.delete(equipe);
-    }
+//    @Transactional(readOnly = true)
+//    public List<Equipe> buscarEquipesPorAdministrador(Usuario administrador) {
+//        return equipeRepository.findByAdministrador(administrador);
+//    }
 
-    @Transactional
-    public void vincularJogadorSemEquipe(Long equipeId, Long jogadorId, Usuario administrador) {
-        Equipe equipe = buscarEquipePorIdEAdministrador(equipeId, administrador)
-                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada para este administrador."));
+//    @Transactional(readOnly = true)
+//    public Optional<Equipe> buscarEquipePorIdEAdministrador(Long id, Usuario administrador) {
+//        return equipeRepository.findByIdAndAdministrador(id, administrador);
+//    }
 
-        Jogador jogador = jogadorRepository.findByIdAndEquipeIsNull(jogadorId)
-                .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado ou já possui equipe."));
+//    @Transactional
+//    public Equipe atualizarEquipe(Long id, EquipeDTO dto, Usuario administrador) {
+//        Equipe equipeExistente = equipeRepository.findByIdAndAdministrador(id, administrador)
+//                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada ou você não tem permissão para editá-la."));
+//
+//        if (equipeRepository.findByNomeAndIdNot(dto.nome(), id).isPresent()) {
+//            throw new IllegalArgumentException("O nome '" + dto.nome() + "' já está em uso por outra equipe.");
+//        }
+//        equipeExistente.setNome(dto.nome());
+//        equipeExistente.setCidade(dto.cidade());
+//        equipeExistente.setEstado(dto.estado());
+//
+//        return equipeRepository.save(equipeExistente);
+//    }
 
-        if (jogador.getEquipe() != null) {
-            throw new IllegalArgumentException("Este jogador já está vinculado a uma equipe.");
-        }
-        jogador.setEquipe(equipe);
-        jogadorRepository.save(jogador);
-    }
+//    @Transactional
+//    public void deletarEquipe(Long id, Usuario administrador) {
+//        Equipe equipe = equipeRepository.findByIdAndAdministrador(id, administrador)
+//                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada ou você não tem permissão para excluí-la."));
+//        equipeRepository.delete(equipe);
+//    }
 
-    public List<Equipe> listarTodas() {
-        return equipeRepository.findAll();
-    }
+//    @Transactional
+//    public void vincularJogadorSemEquipe(Long equipeId, Long jogadorId, Usuario administrador) {
+//        Equipe equipe = buscarEquipePorIdEAdministrador(equipeId, administrador)
+//                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada para este administrador."));
+//
+////        Jogador jogador = jogadorRepository.findByIdAndEquipeIsNull(jogadorId)
+////                .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado ou já possui equipe."));
+//
+////        if (jogador.getEquipe() != null) {
+////            throw new IllegalArgumentException("Este jogador já está vinculado a uma equipe.");
+////        }
+////        jogador.setEquipe(equipe);
+////        jogadorRepository.save(jogador);
+//    }
+
+//    public List<Equipe> listarTodas() {
+//        return equipeRepository.findAll();
+//    }
 
 }

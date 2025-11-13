@@ -8,12 +8,12 @@ public record PartidaResponseDTO(
         Long id,
         LocalDateTime dataHora,
         String local,
-        PartidaStatus status,
+        String timeCasa,
+        String timeVisitante,
         Integer placarCasa,
         Integer placarVisitante,
-        PartidaCampeonatoDTO campeonato,
-        PartidaEquipeDTO equipeCasa,
-        PartidaEquipeDTO equipeVisitante,
-        PartidaArbitroDTO arbitro
+        PartidaStatus status,
+        Long equipeCasaId,
+        Long equipeVisitanteId
 ) {
 }

@@ -1,7 +1,6 @@
 package com.kickoff.api.service;
 
-import com.kickoff.api.repository.core.PessoaRepository;
-import com.kickoff.api.model.auth.Usuario;
+import com.kickoff.api.repository.auth.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -13,14 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthorizationService implements UserDetailsService {
 
     @Autowired
-    private PessoaRepository pessoaRepository;
+    private UsuarioRepository usuarioRepository;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Usuario usuario = pessoaRepository.findByEmail(username)
-                .map(pessoa -> pessoa.getUsuario())
+        return usuarioRepository.findByPessoaEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado com o email: " + username));
-        return usuario;
     }
 }

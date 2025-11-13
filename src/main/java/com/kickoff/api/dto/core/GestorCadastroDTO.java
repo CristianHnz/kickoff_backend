@@ -1,4 +1,4 @@
-package com.kickoff.api.dto.core; // (ou onde preferir)
+package com.kickoff.api.dto.core;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

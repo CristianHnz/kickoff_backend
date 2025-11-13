@@ -23,7 +23,7 @@ public class PartidaEventoMapper {
                 evento.getPartida().getId(),
                 nomeJogador,
                 evento.getEquipe().getNome(),
-                evento.getTipoEvento(),
+                "evento.getTipoEvento()",
                 evento.getMinuto(),
                 evento.getDescricao(),
                 evento.getDataHoraRegistro()

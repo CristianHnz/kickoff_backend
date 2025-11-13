@@ -26,11 +26,13 @@ public class Campeonato {
     private LocalDate dataInicio;
     @Column(name = "data_fim", nullable = false)
     private LocalDate dataFim;
+    @Enumerated(EnumType.STRING)
     @Column(length = 50)
-    private String status;
-
+    private CampeonatoStatus status;
     @PrePersist
     protected void onPersist() {
-        if (this.status == null) this.status = "AGENDADO";
+        if (this.status == null) {
+            this.status = CampeonatoStatus.AGENDADO;
+        }
     }
 }

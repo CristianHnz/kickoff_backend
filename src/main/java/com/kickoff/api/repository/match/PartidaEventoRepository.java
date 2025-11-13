@@ -9,5 +9,5 @@ import java.util.List;
 
 @Repository
 public interface PartidaEventoRepository extends JpaRepository<PartidaEvento, Long> {
-    List<PartidaEvento> findByPartidaOrderByMinutoAsc(Partida partida);
+    List<PartidaEvento> findByPartidaIdOrderByMinutoAsc(Long partidaId);
 }

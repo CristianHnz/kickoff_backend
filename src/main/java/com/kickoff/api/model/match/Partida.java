@@ -4,41 +4,38 @@ import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.role.Arbitro;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "partida")
 public class Partida {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne @JoinColumn(name = "campeonato_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campeonato_id")
     private Campeonato campeonato; // pode ser null (amistoso)
-
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "equipe_casa_id", nullable = false)
     private Equipe equipeCasa;
-
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "equipe_visitante_id", nullable = false)
     private Equipe equipeVisitante;
-
-    @ManyToOne @JoinColumn(name = "arbitro_id")
-    private Arbitro arbitro; // pode ser null
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "arbitro_id")
+    private Arbitro arbitro;
     @Column(name = "data_hora", nullable = false)
     private LocalDateTime dataHora;
-
     private String local;
-
     @Column(name = "placar_casa")
     private Integer placarCasa;
-
     @Column(name = "placar_visitante")
     private Integer placarVisitante;
-
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
     private PartidaStatus status;

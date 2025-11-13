@@ -24,15 +24,16 @@ public class Pessoa {
     private Long id;
     @Column(nullable = false)
     private String nome;
-    @Column(name = "data_nascimento")
+    @Column(name = "data_nascimento", nullable = false)
     private LocalDate dataNascimento;
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String cpf;
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
+    @Column(nullable = false)
     private String telefone;
-    @ManyToOne
-    @JoinColumn(name = "tipo_pessoa")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_pessoa", nullable = false)
     private TipoPessoa tipoPessoa;
     @CreationTimestamp
     @Column(name = "data_cadastro", updatable = false)

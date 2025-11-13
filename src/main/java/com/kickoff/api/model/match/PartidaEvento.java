@@ -16,24 +16,33 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Table(name = "partida_evento")
 public class PartidaEvento {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "partida_id", nullable = false)
     private Partida partida;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jogador_id")
     private Jogador jogador;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "equipe_id")
     private Equipe equipe;
+    @Enumerated(EnumType.STRING)
     @Column(name = "tipo_evento", nullable = false, length = 50)
-    private String tipoEvento;
+    private PartidaEventoTipo tipoEvento;
     private Integer minuto;
     private String descricao;
     @CreationTimestamp
     @Column(name = "data_hora_registro", updatable = false)
     private LocalDateTime dataHoraRegistro;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "jogador_assistencia_id")
+    private Jogador jogadorAssistencia;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "jogador_substituido_id")
+    private Jogador jogadorSubstituido;
 }

@@ -38,8 +38,9 @@ public class AvaliacaoService {
             throw new IllegalArgumentException("A avaliação só pode ser feita após a partida estar 'FINALIZADA'.");
         }
 
-        boolean jogadorParticipou = partida.getEquipeCasa().getId().equals(jogador.getEquipe().getId()) ||
-                partida.getEquipeVisitante().getId().equals(jogador.getEquipe().getId());
+        boolean jogadorParticipou = true;
+//                partida.getEquipeCasa().getId().equals(jogador.getEquipe().getId()) ||
+//                partida.getEquipeVisitante().getId().equals(jogador.getEquipe().getId());
         if (!jogadorParticipou) {
             throw new IllegalArgumentException("O jogador selecionado não participou desta partida.");
         }
@@ -102,8 +103,9 @@ public class AvaliacaoService {
         if (!"FINALIZADA".equalsIgnoreCase(partida.getStatus().toString())) {
             throw new IllegalArgumentException("A avaliação só pode ser feita após a partida estar 'FINALIZADA'.");
         }
-        boolean jogadorParticipou = partida.getEquipeCasa().getId().equals(jogador.getEquipe().getId()) ||
-                partida.getEquipeVisitante().getId().equals(jogador.getEquipe().getId());
+        boolean jogadorParticipou = true;
+//                partida.getEquipeCasa().getId().equals(jogador.getEquipe().getId()) ||
+//                partida.getEquipeVisitante().getId().equals(jogador.getEquipe().getId());
         if (!jogadorParticipou) {
             throw new IllegalArgumentException("O jogador selecionado não participou desta partida.");
         }

@@ -17,10 +17,11 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "arbitro")
 public class Arbitro {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @OneToOne(optional = false)
+    @OneToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "pessoa_id", unique = true, nullable = false)
     private Pessoa pessoa;
     @Column(name = "licenca_cbf", unique = true)

@@ -5,14 +5,18 @@ import com.kickoff.api.dto.AuthResponseDTO;
 import com.kickoff.api.dto.core.GestorCadastroDTO;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Pessoa;
+import com.kickoff.api.model.lookup.Posicao;
+import com.kickoff.api.model.lookup.TipoPessoa;
 import com.kickoff.api.model.role.Arbitro;
+import com.kickoff.api.model.role.ComissaoTecnica;
 import com.kickoff.api.model.role.Jogador;
 import com.kickoff.api.repository.auth.UsuarioRepository;
-import com.kickoff.api.repository.role.ArbitroRepository;
-import com.kickoff.api.repository.role.JogadorRepository;
-import com.kickoff.api.model.lookup.TipoPessoa;
 import com.kickoff.api.repository.core.PessoaRepository;
+import com.kickoff.api.repository.lookup.PosicaoRepository;
 import com.kickoff.api.repository.lookup.TipoPessoaRepository;
+import com.kickoff.api.repository.role.ArbitroRepository;
+import com.kickoff.api.repository.role.ComissaoTecnicaRepository;
+import com.kickoff.api.repository.role.JogadorRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,9 +36,13 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
+    private PosicaoRepository posicaoRepository;
+    @Autowired
     private JogadorRepository jogadorRepository;
     @Autowired
     private ArbitroRepository arbitroRepository;
+    @Autowired
+    private ComissaoTecnicaRepository comissaoTecnicaRepository;
 
     @Transactional
     public AuthResponseDTO registrar(AuthCadastroDTO dto) {
@@ -51,6 +59,9 @@ public class AuthService {
         novaPessoa.setNome(dto.nome());
         novaPessoa.setEmail(dto.email());
         novaPessoa.setTipoPessoa(tipoPessoa);
+        novaPessoa.setCpf(dto.cpf());
+        novaPessoa.setTelefone(dto.telefone());
+        novaPessoa.setDataNascimento(dto.dataNascimento());
 
         String role = mapTipoToRole(tipoPessoa.getDescricao());
         Usuario novoUsuario = new Usuario();
@@ -62,20 +73,7 @@ public class AuthService {
 
         Pessoa pessoaSalva = pessoaRepository.save(novaPessoa);
 
-        String tipo = tipoPessoa.getDescricao();
-
-        if (tipo.equals("JOGADOR")) {
-            Jogador novoJogador = new Jogador();
-            novoJogador.setPessoa(pessoaSalva);
-            jogadorRepository.save(novoJogador);
-
-        } else if (tipo.equals("ARBITRO")) {
-            Arbitro novoArbitro = new Arbitro();
-            novoArbitro.setPessoa(pessoaSalva);
-            arbitroRepository.save(novoArbitro);
-
-        } else if (tipo.equals("ADMINISTRADOR DE EQUIPE")) {
-        }
+        criarEntidadeVinculada(pessoaSalva, tipoPessoa.getDescricao(), dto);
 
         return new AuthResponseDTO(
                 pessoaSalva.getId(),
@@ -83,6 +81,41 @@ public class AuthService {
                 pessoaSalva.getEmail(),
                 pessoaSalva.getUsuario().getRole()
         );
+    }
+
+    private void criarEntidadeVinculada(Pessoa pessoa, String tipoDescricao, AuthCadastroDTO dto) {
+        switch (tipoDescricao) {
+            case "JOGADOR" -> {
+                Jogador novoJogador = new Jogador();
+                novoJogador.setPessoa(pessoa);
+
+                if (dto.posicoes() != null && !dto.posicoes().isEmpty()) {
+                    java.util.Set<Posicao> posicoesSet = new java.util.HashSet<>();
+                    for (String nomePosicao : dto.posicoes()) {
+                        Posicao pos = posicaoRepository.findByDescricao(nomePosicao)
+                                .orElseThrow(() -> new EntityNotFoundException("Posição não encontrada: " + nomePosicao));
+                        posicoesSet.add(pos);
+                    }
+                    novoJogador.setPosicoes(posicoesSet);
+                }
+
+                jogadorRepository.save(novoJogador);
+            }
+            case "ARBITRO" -> {
+                Arbitro novoArbitro = new Arbitro();
+                novoArbitro.setPessoa(pessoa);
+                novoArbitro.setLicencaCbf(dto.licencaCbf());
+                arbitroRepository.save(novoArbitro);
+            }
+            case "TECNICO", "AUXILIAR" -> {
+                ComissaoTecnica novaComissao = new ComissaoTecnica();
+                novaComissao.setPessoa(pessoa);
+                novaComissao.setFuncao(tipoDescricao);
+                comissaoTecnicaRepository.save(novaComissao);
+            }
+            default -> {
+            }
+        }
     }
 
     private String mapTipoToRole(String tipoPessoa) {
@@ -94,43 +127,5 @@ public class AuthService {
             case "ADMINISTRADOR DE EQUIPE" -> "ROLE_GESTOR_EQUIPE";
             default -> "ROLE_USUARIO";
         };
-    }
-
-    @Transactional
-    public AuthResponseDTO registrarPeloGestor(GestorCadastroDTO dto) {
-        if (pessoaRepository.findByEmail(dto.email()).isPresent()) {
-            throw new IllegalArgumentException("Este email já está em uso.");
-        }
-        if (dto.cpf() != null && !dto.cpf().isBlank()) {
-            if (pessoaRepository.findByCpf(dto.cpf()).isPresent()) {
-                throw new IllegalArgumentException("Este CPF já está em uso.");
-            }
-        }
-
-        TipoPessoa tipoPessoa = tipoPessoaRepository.findByDescricao(dto.tipoPessoa())
-                .orElseThrow(() -> new EntityNotFoundException("Tipo de Pessoa '" + dto.tipoPessoa() + "' não encontrado."));
-
-        Pessoa novaPessoa = new Pessoa();
-        novaPessoa.setNome(dto.nome());
-        novaPessoa.setEmail(dto.email());
-        novaPessoa.setCpf(dto.cpf()); // <- Campo extra
-        novaPessoa.setTelefone(dto.telefone()); // <- Campo extra
-        novaPessoa.setDataNascimento(dto.dataNascimento()); // <- Campo extra
-        novaPessoa.setTipoPessoa(tipoPessoa);
-        Pessoa pessoaSalva = pessoaRepository.save(novaPessoa);
-
-        String role = mapTipoToRole(tipoPessoa.getDescricao());
-        Usuario novoUsuario = new Usuario();
-        novoUsuario.setPessoa(pessoaSalva);
-        novoUsuario.setRole(role);
-        novoUsuario.setPassword(passwordEncoder.encode(dto.senha()));
-        usuarioRepository.save(novoUsuario);
-
-        return new AuthResponseDTO(
-                pessoaSalva.getId(),
-                pessoaSalva.getNome(),
-                pessoaSalva.getEmail(),
-                novoUsuario.getRole()
-        );
     }
 }

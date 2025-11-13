@@ -27,7 +27,7 @@ public class Equipe {
     @CreationTimestamp
     @Column(name = "data_criacao", updatable = false)
     private LocalDateTime dataCriacao;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_administrador")
     private Usuario administrador;
 }
