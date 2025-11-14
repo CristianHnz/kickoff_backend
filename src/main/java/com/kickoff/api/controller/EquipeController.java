@@ -40,34 +40,33 @@ public class EquipeController {
         ));
     }
 
+    @PostMapping
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<EquipeDTO> criar(
+            @RequestBody @Valid EquipeDTO dto,
+            @AuthenticationPrincipal String email,
+            UriComponentsBuilder uriBuilder
+    ) {
+        Equipe equipeSalva = equipeService.criarEquipe(dto, email);
+
+        URI uri = uriBuilder.path("/api/equipes/{id}").buildAndExpand(equipeSalva.getId()).toUri();
+        return ResponseEntity.created(uri).body(new EquipeDTO(
+                equipeSalva.getId(), equipeSalva.getNome(), equipeSalva.getCidade(), equipeSalva.getEstado()
+        ));
+    }
+
     @GetMapping("/minha-equipe")
     @PreAuthorize("hasRole('GESTOR_EQUIPE')")
-    public ResponseEntity<EquipeDTO> buscarMinhaEquipe(@AuthenticationPrincipal Usuario usuarioLogado) {
-        Equipe equipe = equipeService.buscarEquipeDoGestor(usuarioLogado);
+    public ResponseEntity<EquipeDTO> buscarMinhaEquipe(
+            @AuthenticationPrincipal String email
+    ) {
+        Equipe equipe = equipeService.buscarEquipeDoGestor(email);
+
         return ResponseEntity.ok(new EquipeDTO(
                 equipe.getId(),
                 equipe.getNome(),
                 equipe.getCidade(),
                 equipe.getEstado()
-        ));
-    }
-
-    @PostMapping
-    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
-    public ResponseEntity<EquipeDTO> criar(
-            @RequestBody @Valid EquipeDTO dto,
-            @AuthenticationPrincipal Usuario usuarioLogado,
-            UriComponentsBuilder uriBuilder
-    ) {
-        Equipe equipeSalva = equipeService.criarEquipe(dto, usuarioLogado);
-
-        URI uri = uriBuilder.path("/api/equipes/{id}").buildAndExpand(equipeSalva.getId()).toUri();
-
-        return ResponseEntity.created(uri).body(new EquipeDTO(
-                equipeSalva.getId(),
-                equipeSalva.getNome(),
-                equipeSalva.getCidade(),
-                equipeSalva.getEstado()
         ));
     }
 

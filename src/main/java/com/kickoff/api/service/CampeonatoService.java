@@ -1,25 +1,24 @@
-// src/main/java/com/kickoff/api/service/CampeonatoService.java
 package com.kickoff.api.service;
 
-import com.kickoff.api.dto.match.CampeonatoDTO;
+import com.kickoff.api.dto.match.CampeonatoDetalhesDTO;
+import com.kickoff.api.dto.match.CampeonatoInputDTO;
+import com.kickoff.api.dto.match.CampeonatoResponseDTO;
+import com.kickoff.api.dto.match.TabelaCampeonatoDTO;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.match.Campeonato;
 import com.kickoff.api.model.match.CampeonatoEquipe;
-import com.kickoff.api.model.match.Partida;
-import com.kickoff.api.model.match.PartidaStatus;
+import com.kickoff.api.model.match.CampeonatoStatus;
 import com.kickoff.api.repository.core.EquipeRepository;
 import com.kickoff.api.repository.match.CampeonatoEquipeRepository;
 import com.kickoff.api.repository.match.CampeonatoRepository;
-import com.kickoff.api.repository.match.PartidaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CampeonatoService {
@@ -30,84 +29,99 @@ public class CampeonatoService {
     private EquipeRepository equipeRepository;
     @Autowired
     private CampeonatoEquipeRepository campeonatoEquipeRepository;
-    @Autowired
-    private PartidaRepository partidaRepository;
 
     @Transactional
-    public Campeonato criarCampeonato(CampeonatoDTO dto) {
-        campeonatoRepository.findByNomeAndAno(dto.nome(), dto.ano()).ifPresent(c -> {
-            throw new IllegalArgumentException("Um campeonato com este nome já existe para este ano.");
-        });
+    public Campeonato criarCampeonato(CampeonatoInputDTO dto) {
+        if (campeonatoRepository.findByNomeAndAno(dto.nome(), dto.ano()).isPresent()) {
+            throw new IllegalArgumentException("Já existe um campeonato com este nome no ano " + dto.ano());
+        }
 
         if (dto.dataFim().isBefore(dto.dataInicio())) {
-            throw new IllegalArgumentException("A data de fim deve ser após a data de início.");
+            throw new IllegalArgumentException("A data de término não pode ser anterior à data de início.");
         }
 
-        Campeonato novoCampeonato = new Campeonato();
-        novoCampeonato.setNome(dto.nome());
-        novoCampeonato.setAno(dto.ano());
-        novoCampeonato.setDataInicio(dto.dataInicio());
-        novoCampeonato.setDataFim(dto.dataFim());
-        return campeonatoRepository.save(novoCampeonato);
+        Campeonato campeonato = new Campeonato();
+        campeonato.setNome(dto.nome());
+        campeonato.setAno(dto.ano());
+        campeonato.setDataInicio(dto.dataInicio());
+        campeonato.setDataFim(dto.dataFim());
+        campeonato.setStatus(CampeonatoStatus.AGENDADO);
+
+        return campeonatoRepository.save(campeonato);
     }
 
-    @Transactional(readOnly = true)
-    public List<Campeonato> listarCampeonatos() {
-        return campeonatoRepository.findAll();
-    }
-
-    @Transactional(readOnly = true)
-    public Campeonato buscarCampeonatoPorId(Long id) {
-        return campeonatoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Campeonato não encontrado com o ID: " + id));
+    public List<CampeonatoResponseDTO> listarTodos() {
+        return campeonatoRepository.findAll().stream()
+                .map(c -> new CampeonatoResponseDTO(
+                        c.getId(),
+                        c.getNome(),
+                        c.getAno(),
+                        c.getDataInicio(),
+                        c.getDataFim(),
+                        c.getStatus()
+                ))
+                .collect(Collectors.toList());
     }
 
     @Transactional
-    public Campeonato atualizarCampeonato(Long id, CampeonatoDTO dto) {
-        Campeonato campeonatoExistente = buscarCampeonatoPorId(id); // Reutiliza o método que já lança 404
-
-        campeonatoRepository.findByNomeAndAno(dto.nome(), dto.ano()).ifPresent(c -> {
-            if (!c.getId().equals(id)) { // Se o ID encontrado for diferente do que estamos editando
-                throw new IllegalArgumentException("Um campeonato com este nome já existe para este ano.");
-            }
-        });
-
-        if (dto.dataFim().isBefore(dto.dataInicio())) {
-            throw new IllegalArgumentException("A data de fim deve ser após a data de início.");
+    public void inscreverEquipe(Long campeonatoId, Long equipeId) {
+        if (campeonatoEquipeRepository.existsByCampeonatoIdAndEquipeId(campeonatoId, equipeId)) {
+            throw new IllegalArgumentException("Esta equipe já está inscrita no campeonato.");
         }
 
-        campeonatoExistente.setNome(dto.nome());
-        campeonatoExistente.setAno(dto.ano());
-        campeonatoExistente.setDataInicio(dto.dataInicio());
-        campeonatoExistente.setDataFim(dto.dataFim());
+        Campeonato campeonato = campeonatoRepository.findById(campeonatoId)
+                .orElseThrow(() -> new EntityNotFoundException("Campeonato não encontrado"));
 
-        return campeonatoRepository.save(campeonatoExistente);
+        Equipe equipe = equipeRepository.findById(equipeId)
+                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada"));
+
+        CampeonatoEquipe inscricao = new CampeonatoEquipe();
+        inscricao.setCampeonato(campeonato);
+        inscricao.setEquipe(equipe);
+
+        campeonatoEquipeRepository.save(inscricao);
     }
 
-    @Transactional
-    public void deletarCampeonato(Long id) {
-        Campeonato campeonato = buscarCampeonatoPorId(id);
-        campeonatoRepository.delete(campeonato);
+    public CampeonatoDetalhesDTO buscarDetalhes(Long campeonatoId) {
+        Campeonato c = campeonatoRepository.findById(campeonatoId)
+                .orElseThrow(() -> new EntityNotFoundException("Campeonato não encontrado"));
+
+        CampeonatoResponseDTO info = new CampeonatoResponseDTO(
+                c.getId(), c.getNome(), c.getAno(), c.getDataInicio(), c.getDataFim(), c.getStatus()
+        );
+
+        List<TabelaCampeonatoDTO> tabela = listarTabela(campeonatoId);
+
+        return new CampeonatoDetalhesDTO(info, tabela);
     }
 
-    @Transactional
-    public void adicionarEquipes(Long campeonatoId, List<Long> equipeIds) {
-        Campeonato camp = buscarCampeonatoPorId(campeonatoId);
-        if (equipeIds == null || equipeIds.isEmpty()) {
-            throw new IllegalArgumentException("Informe ao menos uma equipe.");
-        }
+    private List<TabelaCampeonatoDTO> listarTabela(Long campeonatoId) {
+        Sort sort = Sort.by(
+                Sort.Order.desc("pontos"),
+                Sort.Order.desc("vitorias"),
+                Sort.Order.desc("golsPro")
+        );
 
-        for (Long equipeId : equipeIds) {
-            Equipe eq = equipeRepository.findById(equipeId)
-                    .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada: " + equipeId));
+        return campeonatoEquipeRepository.findByCampeonatoId(campeonatoId, sort).stream()
+                .map(this::mapToTabelaDTO)
+                .collect(Collectors.toList());
+    }
 
-            boolean exists = campeonatoEquipeRepository.findByCampeonatoAndEquipe(camp, eq).isPresent();
-            if (!exists) {
-                CampeonatoEquipe ce = new CampeonatoEquipe();
-                ce.setCampeonato(camp);
-                ce.setEquipe(eq);
-                campeonatoEquipeRepository.save(ce);
-            }
-        }
+    private TabelaCampeonatoDTO mapToTabelaDTO(CampeonatoEquipe ce) {
+        int saldoGols = ce.getGolsPro() - ce.getGolsContra();
+        int jogos = ce.getVitorias() + ce.getEmpates() + ce.getDerrotas();
+
+        return new TabelaCampeonatoDTO(
+                ce.getEquipe().getId(),
+                ce.getEquipe().getNome(),
+                ce.getPontos(),
+                ce.getVitorias(),
+                ce.getEmpates(),
+                ce.getDerrotas(),
+                ce.getGolsPro(),
+                ce.getGolsContra(),
+                saldoGols,
+                jogos
+        );
     }
 }

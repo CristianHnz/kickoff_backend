@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,4 +19,12 @@ public interface JogadorRepository extends JpaRepository<Jogador, Long> {
     Optional<Jogador> finFdByIdWithPosicoes(@Param("id") Long id);
 
     Optional<Jogador> findByPessoaId(Long pessoaId);
+
+    @Query("""
+                SELECT j FROM Jogador j 
+                WHERE j.id NOT IN (
+                    SELECT je.jogador.id FROM JogadorEquipe je WHERE je.dataSaida IS NULL
+                )
+            """)
+    List<Jogador> findJogadoresSemContrato();
 }

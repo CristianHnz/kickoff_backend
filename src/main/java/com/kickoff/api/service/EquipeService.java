@@ -4,6 +4,7 @@ import com.kickoff.api.dto.core.EquipeDTO;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.role.Jogador;
+import com.kickoff.api.repository.auth.UsuarioRepository;
 import com.kickoff.api.repository.core.EquipeRepository;
 import com.kickoff.api.repository.role.JogadorRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -22,9 +23,15 @@ public class EquipeService {
     private EquipeRepository equipeRepository;
     @Autowired
     private JogadorRepository jogadorRepository;
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     @Transactional
-    public Equipe criarEquipe(EquipeDTO dto, Usuario administrador) {
+    public Equipe criarEquipe(EquipeDTO dto, String email) {
+
+        Usuario administrador = usuarioRepository.findByPessoaEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário administrador não encontrado"));
+
         if (equipeRepository.existsByNome(dto.nome())) {
             throw new IllegalArgumentException("Já existe uma equipe com o nome '" + dto.nome() + "'.");
         }
@@ -53,7 +60,11 @@ public class EquipeService {
                 .collect(Collectors.toList());
     }
 
-    public Equipe buscarEquipeDoGestor(Usuario gestor) {
+    public Equipe buscarEquipeDoGestor(String email) {
+
+        Usuario gestor = usuarioRepository.findByPessoaEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário gestor não encontrado"));
+
         return equipeRepository.findByAdministradorId(gestor.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Nenhuma equipe encontrada para este gestor."));
     }

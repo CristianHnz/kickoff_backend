@@ -3,9 +3,13 @@ package com.kickoff.api.service;
 import com.kickoff.api.dto.match.PartidaInputDTO;
 import com.kickoff.api.dto.match.PartidaResponseDTO;
 import com.kickoff.api.model.core.Equipe;
+import com.kickoff.api.model.match.Campeonato;
+import com.kickoff.api.model.match.CampeonatoEquipe;
 import com.kickoff.api.model.match.Partida;
 import com.kickoff.api.model.match.PartidaStatus;
 import com.kickoff.api.repository.core.EquipeRepository;
+import com.kickoff.api.repository.match.CampeonatoEquipeRepository;
+import com.kickoff.api.repository.match.CampeonatoRepository;
 import com.kickoff.api.repository.match.PartidaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +26,13 @@ public class PartidaService {
     private PartidaRepository partidaRepository;
     @Autowired
     private EquipeRepository equipeRepository;
+    @Autowired
+    private CampeonatoEquipeRepository campeonatoEquipeRepository;
+    @Autowired
+    private CampeonatoRepository campeonatoRepository;
 
     @Transactional
-    public Partida agendarAmistoso(PartidaInputDTO dto) {
+    public Partida agendarPartida(PartidaInputDTO dto) {
         if (dto.equipeCasaId().equals(dto.equipeVisitanteId())) {
             throw new IllegalArgumentException("Uma equipe não pode jogar contra si mesma.");
         }
@@ -43,6 +51,13 @@ public class PartidaService {
         partida.setStatus(PartidaStatus.AGENDADA);
         partida.setPlacarCasa(0);
         partida.setPlacarVisitante(0);
+
+        if (dto.campeonatoId() != null) {
+            Campeonato c = campeonatoRepository.findById(dto.campeonatoId())
+                    .orElseThrow(() -> new EntityNotFoundException("Campeonato não encontrado"));
+            partida.setCampeonato(c);
+        }
+
         return partidaRepository.save(partida);
     }
 
@@ -71,8 +86,59 @@ public class PartidaService {
             PartidaStatus status = PartidaStatus.valueOf(statusStr);
             partida.setStatus(status);
             partidaRepository.save(partida);
+
+            if (status == PartidaStatus.FINALIZADA && partida.getCampeonato() != null) {
+                processarResultadoCampeonato(partida);
+            }
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Status inválido: " + statusStr);
+        }
+    }
+
+    private void processarResultadoCampeonato(Partida partida) {
+        Long campeonatoId = partida.getCampeonato().getId();
+
+        CampeonatoEquipe timeCasaStats = campeonatoEquipeRepository
+                .findByCampeonatoIdAndEquipeId(campeonatoId, partida.getEquipeCasa().getId())
+                .orElse(null);
+
+        CampeonatoEquipe timeVisitanteStats = campeonatoEquipeRepository
+                .findByCampeonatoIdAndEquipeId(campeonatoId, partida.getEquipeVisitante().getId())
+                .orElse(null);
+
+        if (timeCasaStats != null && timeVisitanteStats != null) {
+
+            int placarCasa = partida.getPlacarCasa();
+            int placarVisitante = partida.getPlacarVisitante();
+
+            // Atualiza Gols
+            timeCasaStats.setGolsPro(timeCasaStats.getGolsPro() + placarCasa);
+            timeCasaStats.setGolsContra(timeCasaStats.getGolsContra() + placarVisitante);
+
+            timeVisitanteStats.setGolsPro(timeVisitanteStats.getGolsPro() + placarVisitante);
+            timeVisitanteStats.setGolsContra(timeVisitanteStats.getGolsContra() + placarCasa);
+
+            // Define Pontos, V, E, D
+            if (placarCasa > placarVisitante) {
+                // Vitória Time Casa
+                timeCasaStats.setPontos(timeCasaStats.getPontos() + 3);
+                timeCasaStats.setVitorias(timeCasaStats.getVitorias() + 1);
+                timeVisitanteStats.setDerrotas(timeVisitanteStats.getDerrotas() + 1);
+            } else if (placarVisitante > placarCasa) {
+                // Vitória Time Visitante
+                timeVisitanteStats.setPontos(timeVisitanteStats.getPontos() + 3);
+                timeVisitanteStats.setVitorias(timeVisitanteStats.getVitorias() + 1);
+                timeCasaStats.setDerrotas(timeCasaStats.getDerrotas() + 1);
+            } else {
+                // Empate
+                timeCasaStats.setPontos(timeCasaStats.getPontos() + 1);
+                timeCasaStats.setEmpates(timeCasaStats.getEmpates() + 1);
+                timeVisitanteStats.setPontos(timeVisitanteStats.getPontos() + 1);
+                timeVisitanteStats.setEmpates(timeVisitanteStats.getEmpates() + 1);
+            }
+
+            campeonatoEquipeRepository.save(timeCasaStats);
+            campeonatoEquipeRepository.save(timeVisitanteStats);
         }
     }
 

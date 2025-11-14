@@ -1,9 +1,8 @@
-// src/main/java/com/kickoff/api/service/TokenService.java
 package com.kickoff.api.service;
 
 import com.kickoff.api.model.auth.Usuario;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-// import io.jsonwebtoken.SignatureAlgorithm; // Não é mais necessário
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,7 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Date; // Importar java.util.Date
+import java.util.Date;
+import java.util.List;
 
 @Service
 public class TokenService {
@@ -30,24 +30,21 @@ public class TokenService {
 
         return Jwts.builder()
                 .issuer("Kickoff API")
-                .subject(usuario.getUsername()) // O email do usuário
+                .subject(usuario.getUsername())
+                .claim("roles", List.of(usuario.getRole()))
                 .issuedAt(Date.from(Instant.now()))
                 .expiration(Date.from(expirationTime))
-                .signWith(getSigningKey()) // A chave já contém o algoritmo
+                .signWith(getSigningKey())
                 .compact();
     }
 
-    /**
-     * Valida o token e retorna o "subject" (email) se for válido.
-     */
-    public String validateToken(String token) {
+    public Claims validateToken(String token) {
         try {
             return Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(token)
-                    .getPayload()
-                    .getSubject();
+                    .getPayload();
         } catch (Exception e) {
             throw new RuntimeException("Token JWT inválido ou expirado!", e);
         }

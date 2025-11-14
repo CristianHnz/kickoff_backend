@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface CampeonatoRepository extends JpaRepository<Campeonato, Long> {
-    Optional<Campeonato> findByNomeAndAno(String nome, Integer ano);
+    Optional<Campeonato> findByNomeAndAno(String nome, Integer anoR);
 }

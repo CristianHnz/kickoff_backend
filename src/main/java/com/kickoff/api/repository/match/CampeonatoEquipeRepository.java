@@ -1,15 +1,19 @@
 package com.kickoff.api.repository.match;
 
-import com.kickoff.api.model.match.Campeonato;
 import com.kickoff.api.model.match.CampeonatoEquipe;
-import com.kickoff.api.model.core.Equipe;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface CampeonatoEquipeRepository extends JpaRepository<CampeonatoEquipe, Long> {
-    List<CampeonatoEquipe> findByCampeonato(Campeonato campeonato);
-    Optional<CampeonatoEquipe> findByCampeonatoAndEquipe(Campeonato c, Equipe e);
-    void deleteByCampeonatoAndEquipe(Campeonato c, Equipe e);
+
+    List<CampeonatoEquipe> findByCampeonatoId(Long campeonatoId, Sort sort);
+
+    boolean existsByCampeonatoIdAndEquipeId(Long campeonatoId, Long equipeId);
+
+    Optional<CampeonatoEquipe> findByCampeonatoIdAndEquipeId(Long campeonatoId, Long equipeId);
 }

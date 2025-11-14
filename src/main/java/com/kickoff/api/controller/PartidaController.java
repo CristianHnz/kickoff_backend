@@ -21,7 +21,7 @@ public class PartidaController {
     @PostMapping
     @PreAuthorize("hasRole('GESTOR_EQUIPE')")
     public ResponseEntity<Void> agendar(@RequestBody @Valid PartidaInputDTO dto) {
-        partidaService.agendarAmistoso(dto);
+        partidaService.agendarPartida(dto);
         return ResponseEntity.ok().build();
     }
 
@@ -35,7 +35,7 @@ public class PartidaController {
     @PreAuthorize("hasRole('GESTOR_EQUIPE')")
     public ResponseEntity<Void> atualizarStatus(
             @PathVariable Long id,
-            @RequestBody String novoStatus // Espera string crua ex: "EM_ANDAMENTO"
+            @RequestBody String novoStatus
     ) {
         partidaService.atualizarStatus(id, novoStatus);
         return ResponseEntity.ok().build();

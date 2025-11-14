@@ -1,5 +1,6 @@
 package com.kickoff.api.controller;
 
+import com.kickoff.api.dto.role.ContratacaoDTO;
 import com.kickoff.api.dto.role.JogadorCadastroDTO;
 import com.kickoff.api.dto.role.JogadorResumoDTO;
 import com.kickoff.api.service.JogadorService;
@@ -32,5 +33,21 @@ public class JogadorController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<JogadorResumoDTO>> listarJogadores(@PathVariable Long equipeId) {
         return ResponseEntity.ok(jogadorService.listarJogadoresDaEquipe(equipeId));
+    }
+
+    @GetMapping("/disponiveis")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<JogadorResumoDTO>> listarDisponiveis() {
+        return ResponseEntity.ok(jogadorService.listarJogadoresDisponiveis());
+    }
+
+    @PostMapping("/contratar")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<Void> contratarExistente(
+            @PathVariable Long equipeId,
+            @RequestBody @Valid ContratacaoDTO dto
+    ) {
+        jogadorService.contratarJogadorExistente(equipeId, dto);
+        return ResponseEntity.ok().build();
     }
 }

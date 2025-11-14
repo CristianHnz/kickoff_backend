@@ -1,7 +1,6 @@
 package com.kickoff.api.service;
 
-import com.kickoff.api.dto.role.JogadorCadastroDTO;
-import com.kickoff.api.dto.role.JogadorResumoDTO;
+import com.kickoff.api.dto.role.*;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.core.Pessoa;
 import com.kickoff.api.model.lookup.Posicao;
@@ -106,5 +105,107 @@ public class JogadorService {
         j.setPessoa(pessoa);
         j.setNumeroCamisa(dto.numeroCamisa());
         return jogadorRepository.save(j);
+    }
+
+    public List<JogadorResumoDTO> listarJogadoresDisponiveis() {
+        return jogadorRepository.findJogadoresSemContrato().stream()
+                .map(j -> new JogadorResumoDTO(
+                        j.getId(),
+                        j.getPessoa().getId(),
+                        j.getPessoa().getNome() + " (" + j.getPessoa().getEmail() + ")", // Exibição
+                        j.getNumeroCamisa(),
+                        j.getPosicoes().stream().map(Posicao::getDescricao).toList(),
+                        "LIVRE"
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void contratarJogadorExistente(Long equipeId, ContratacaoDTO dto) {
+        Equipe equipe = equipeRepository.findById(equipeId)
+                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada"));
+
+        Jogador jogador = jogadorRepository.findById(dto.jogadorId())
+                .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado"));
+
+        if (jogadorEquipeRepository.findContratoAtivo(jogador.getId()).isPresent()) {
+            throw new IllegalArgumentException("Este jogador já possui um contrato ativo.");
+        }
+
+        jogador.setNumeroCamisa(dto.numeroCamisa());
+        Posicao posicao = posicaoRepository.findByDescricao(dto.posicao())
+                .orElseThrow(() -> new EntityNotFoundException("Posição inválida"));
+        jogador.setPosicoes(new java.util.HashSet<>(java.util.Set.of(posicao)));
+        jogadorRepository.save(jogador);
+
+        JogadorEquipe vinculo = new JogadorEquipe();
+        vinculo.setJogador(jogador);
+        vinculo.setEquipe(equipe);
+        vinculo.setDataEntrada(LocalDate.now());
+        jogadorEquipeRepository.save(vinculo);
+    }
+
+    public List<JogadorResumoDTO> listarTodosJogadores() {
+        List<Jogador> todos = jogadorRepository.findAll();
+
+        return todos.stream().map(j -> {
+
+            String status = jogadorEquipeRepository.findContratoAtivo(j.getId())
+                    .isPresent() ? "CONTRATADO" : "LIVRE";
+
+            return new JogadorResumoDTO(
+                    j.getId(),
+                    j.getPessoa().getId(),
+                    j.getPessoa().getNome(),
+                    j.getNumeroCamisa(), // Pode ser o último número usado
+                    j.getPosicoes().stream().map(Posicao::getDescricao).collect(Collectors.toList()),
+                    status
+            );
+        }).collect(Collectors.toList());
+    }
+
+    public JogadorDetalhesDTO buscarDetalhesJogador(Long jogadorId) {
+        Jogador jogador = jogadorRepository.findById(jogadorId)
+                .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado"));
+
+        Pessoa pessoa = jogador.getPessoa();
+
+        List<String> posicoes = jogador.getPosicoes().stream()
+                .map(Posicao::getDescricao)
+                .collect(Collectors.toList());
+
+        List<JogadorEquipe> vinculos = jogadorEquipeRepository.findByJogadorIdOrderByDataEntradaDesc(jogadorId);
+
+        EquipeAtualDTO equipeAtual = vinculos.stream()
+                .filter(v -> v.getDataSaida() == null)
+                .findFirst()
+                .map(v -> new EquipeAtualDTO(
+                        v.getEquipe().getId(),
+                        v.getEquipe().getNome(),
+                        jogador.getNumeroCamisa(),
+                        v.getDataEntrada()
+                ))
+                .orElse(null);
+
+        List<HistoricoEquipeDTO> historico = vinculos.stream()
+                .filter(v -> v.getDataSaida() != null)
+                .map(v -> new HistoricoEquipeDTO(
+                        v.getEquipe().getNome(),
+                        v.getDataEntrada(),
+                        v.getDataSaida()
+                ))
+                .collect(Collectors.toList());
+
+        return new JogadorDetalhesDTO(
+                jogador.getId(),
+                pessoa.getNome(),
+                pessoa.getEmail(),
+                pessoa.getCpf(),
+                pessoa.getTelefone(),
+                pessoa.getDataNascimento(),
+                posicoes,
+                equipeAtual,
+                historico
+        );
     }
 }

@@ -83,6 +83,81 @@ public class AuthService {
         );
     }
 
+    @Transactional
+    public AuthResponseDTO registrarPeloGestor(GestorCadastroDTO dto) {
+        if (pessoaRepository.findByEmail(dto.email()).isPresent()) {
+            throw new IllegalArgumentException("Este email já está em uso.");
+        }
+        if (pessoaRepository.findByCpf(dto.cpf()).isPresent()) {
+            throw new IllegalArgumentException("Este CPF já está em uso.");
+        }
+
+        TipoPessoa tipoPessoa = tipoPessoaRepository.findByDescricao(dto.tipoPessoa().toUpperCase())
+                .orElseThrow(() -> new EntityNotFoundException("Tipo de Pessoa '" + dto.tipoPessoa() + "' não encontrado."));
+
+        Pessoa novaPessoa = new Pessoa();
+        novaPessoa.setNome(dto.nome());
+        novaPessoa.setEmail(dto.email());
+        novaPessoa.setCpf(dto.cpf());
+        novaPessoa.setTelefone(dto.telefone());
+        novaPessoa.setDataNascimento(dto.dataNascimento());
+        novaPessoa.setTipoPessoa(tipoPessoa);
+
+        String role = mapTipoToRole(tipoPessoa.getDescricao());
+        String encodedPassword = passwordEncoder.encode(dto.senha());
+
+        Usuario novoUsuario = new Usuario();
+        novoUsuario.setRole(role);
+        novoUsuario.setPassword(encodedPassword);
+
+        novaPessoa.setUsuario(novoUsuario);
+        novoUsuario.setPessoa(novaPessoa);
+
+        Pessoa pessoaSalva = pessoaRepository.save(novaPessoa);
+
+        criarEntidadeVinculada(pessoaSalva, tipoPessoa.getDescricao(), dto);
+
+        return new AuthResponseDTO(
+                pessoaSalva.getId(),
+                pessoaSalva.getNome(),
+                pessoaSalva.getEmail(),
+                novoUsuario.getRole()
+        );
+    }
+
+    private void criarEntidadeVinculada(Pessoa pessoa, String tipoDescricao, GestorCadastroDTO dto) {
+        switch (tipoDescricao) {
+            case "JOGADOR" -> {
+                Jogador novoJogador = new Jogador();
+                novoJogador.setPessoa(pessoa);
+
+                if (dto.posicoes() != null && !dto.posicoes().isEmpty()) {
+                    java.util.Set<Posicao> posicoesSet = new java.util.HashSet<>();
+
+                    for (String nomePosicao : dto.posicoes()) {
+                        Posicao pos = posicaoRepository.findByDescricao(nomePosicao)
+                                .orElseThrow(() -> new EntityNotFoundException("Posição não encontrada: " + nomePosicao));
+                        posicoesSet.add(pos);
+                    }
+
+                    novoJogador.setPosicoes(posicoesSet);
+                }
+
+                jogadorRepository.save(novoJogador);
+            }
+
+            case "TECNICO", "AUXILIAR" -> {
+                ComissaoTecnica novaComissao = new ComissaoTecnica();
+                novaComissao.setPessoa(pessoa);
+                novaComissao.setFuncao(tipoDescricao);
+                comissaoTecnicaRepository.save(novaComissao);
+            }
+
+            default -> {
+            }
+        }
+    }
+
     private void criarEntidadeVinculada(Pessoa pessoa, String tipoDescricao, AuthCadastroDTO dto) {
         switch (tipoDescricao) {
             case "JOGADOR" -> {
