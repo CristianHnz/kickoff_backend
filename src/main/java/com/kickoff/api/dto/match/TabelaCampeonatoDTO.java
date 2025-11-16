@@ -1,6 +1,9 @@
 package com.kickoff.api.dto.match;
 
 public record TabelaCampeonatoDTO(
+        Long campeonatoId,
+        String campeonatoNome,
+        Integer posicao,
         Long equipeId,
         String nomeEquipe,
         int pontos,

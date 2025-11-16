@@ -16,4 +16,6 @@ public interface CampeonatoEquipeRepository extends JpaRepository<CampeonatoEqui
     boolean existsByCampeonatoIdAndEquipeId(Long campeonatoId, Long equipeId);
 
     Optional<CampeonatoEquipe> findByCampeonatoIdAndEquipeId(Long campeonatoId, Long equipeId);
+
+    List<CampeonatoEquipe> findByEquipeId(Long equipeId);
 }

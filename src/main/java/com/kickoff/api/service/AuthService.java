@@ -2,6 +2,7 @@ package com.kickoff.api.service;
 
 import com.kickoff.api.dto.AuthCadastroDTO;
 import com.kickoff.api.dto.AuthResponseDTO;
+import com.kickoff.api.dto.auth.AlterarSenhaDTO;
 import com.kickoff.api.dto.core.GestorCadastroDTO;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Pessoa;
@@ -191,6 +192,31 @@ public class AuthService {
             default -> {
             }
         }
+    }
+
+    /**
+     * Altera a senha de um usuário logado.
+     *
+     * @param emailUsuarioLogado O email (sub) vindo do token JWT.
+     * @param dto                O DTO contendo a senha antiga e a nova.
+     */
+    @Transactional
+    public void alterarSenha(String emailUsuarioLogado, AlterarSenhaDTO dto) {
+        Usuario usuario = usuarioRepository.findByPessoaEmail(emailUsuarioLogado)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
+
+        if (!passwordEncoder.matches(dto.senhaAntiga(), usuario.getPassword())) {
+            throw new IllegalArgumentException("A senha antiga está incorreta.");
+        }
+
+        if (passwordEncoder.matches(dto.novaSenha(), usuario.getPassword())) {
+            throw new IllegalArgumentException("A nova senha não pode ser igual à senha antiga.");
+        }
+
+        String novaSenhaCriptografada = passwordEncoder.encode(dto.novaSenha());
+        usuario.setPassword(novaSenhaCriptografada);
+
+        usuarioRepository.save(usuario);
     }
 
     private String mapTipoToRole(String tipoPessoa) {

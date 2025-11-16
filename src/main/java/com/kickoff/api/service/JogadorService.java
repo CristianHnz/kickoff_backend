@@ -157,7 +157,7 @@ public class JogadorService {
                     j.getId(),
                     j.getPessoa().getId(),
                     j.getPessoa().getNome(),
-                    j.getNumeroCamisa(), // Pode ser o último número usado
+                    j.getNumeroCamisa(),
                     j.getPosicoes().stream().map(Posicao::getDescricao).collect(Collectors.toList()),
                     status
             );
@@ -207,5 +207,26 @@ public class JogadorService {
                 equipeAtual,
                 historico
         );
+    }
+
+    @Transactional
+    public void dispensarJogador(Long equipeId, Long jogadorId) {
+        if (!jogadorRepository.existsById(jogadorId)) {
+            throw new EntityNotFoundException("Jogador não encontrado.");
+        }
+
+        JogadorEquipe vinculoAtivo = jogadorEquipeRepository.findContratoAtivo(jogadorId)
+                .orElseThrow(() -> new EntityNotFoundException("Este jogador não possui um vínculo ativo."));
+
+        if (!vinculoAtivo.getEquipe().getId().equals(equipeId)) {
+            throw new IllegalArgumentException("O jogador não pode ser dispensado por esta equipe, pois pertence a outra.");
+        }
+
+        vinculoAtivo.setDataSaida(LocalDate.now());
+
+        jogadorEquipeRepository.save(vinculoAtivo);
+        Jogador jogador = vinculoAtivo.getJogador();
+        jogador.setNumeroCamisa(null);
+        jogadorRepository.save(jogador);
     }
 }

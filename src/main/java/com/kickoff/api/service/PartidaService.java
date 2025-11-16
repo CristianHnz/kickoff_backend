@@ -63,18 +63,7 @@ public class PartidaService {
 
     public List<PartidaResponseDTO> listarPartidasDoTime(Long equipeId) {
         return partidaRepository.findPartidasPorEquipe(equipeId).stream()
-                .map(p -> new PartidaResponseDTO(
-                        p.getId(),
-                        p.getDataHora(),
-                        p.getLocal(),
-                        p.getEquipeCasa().getNome(),
-                        p.getEquipeVisitante().getNome(),
-                        p.getPlacarCasa(),
-                        p.getPlacarVisitante(),
-                        p.getStatus(),
-                        p.getEquipeCasa().getId(),
-                        p.getEquipeVisitante().getId()
-                ))
+                .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
 
@@ -111,26 +100,21 @@ public class PartidaService {
             int placarCasa = partida.getPlacarCasa();
             int placarVisitante = partida.getPlacarVisitante();
 
-            // Atualiza Gols
             timeCasaStats.setGolsPro(timeCasaStats.getGolsPro() + placarCasa);
             timeCasaStats.setGolsContra(timeCasaStats.getGolsContra() + placarVisitante);
 
             timeVisitanteStats.setGolsPro(timeVisitanteStats.getGolsPro() + placarVisitante);
             timeVisitanteStats.setGolsContra(timeVisitanteStats.getGolsContra() + placarCasa);
 
-            // Define Pontos, V, E, D
             if (placarCasa > placarVisitante) {
-                // Vitória Time Casa
                 timeCasaStats.setPontos(timeCasaStats.getPontos() + 3);
                 timeCasaStats.setVitorias(timeCasaStats.getVitorias() + 1);
                 timeVisitanteStats.setDerrotas(timeVisitanteStats.getDerrotas() + 1);
             } else if (placarVisitante > placarCasa) {
-                // Vitória Time Visitante
                 timeVisitanteStats.setPontos(timeVisitanteStats.getPontos() + 3);
                 timeVisitanteStats.setVitorias(timeVisitanteStats.getVitorias() + 1);
                 timeCasaStats.setDerrotas(timeCasaStats.getDerrotas() + 1);
             } else {
-                // Empate
                 timeCasaStats.setPontos(timeCasaStats.getPontos() + 1);
                 timeCasaStats.setEmpates(timeCasaStats.getEmpates() + 1);
                 timeVisitanteStats.setPontos(timeVisitanteStats.getPontos() + 1);
@@ -146,6 +130,10 @@ public class PartidaService {
         Partida p = partidaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada"));
 
+        return mapToResponseDTO(p);
+    }
+
+    public PartidaResponseDTO mapToResponseDTO(Partida p) {
         return new PartidaResponseDTO(
                 p.getId(),
                 p.getDataHora(),
@@ -158,5 +146,55 @@ public class PartidaService {
                 p.getEquipeCasa().getId(),
                 p.getEquipeVisitante().getId()
         );
+    }
+
+    @Transactional
+    public Partida atualizarPartida(Long partidaId, PartidaInputDTO dto) {
+        Partida partida = partidaRepository.findById(partidaId)
+                .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada"));
+
+        if (partida.getStatus() != PartidaStatus.AGENDADA) {
+            throw new IllegalArgumentException("Só é permitido alterar partidas com status 'AGENDADA'.");
+        }
+
+        if (dto.equipeCasaId().equals(dto.equipeVisitanteId())) {
+            throw new IllegalArgumentException("Uma equipe não pode jogar contra si mesma.");
+        }
+
+        Equipe casa = equipeRepository.findById(dto.equipeCasaId())
+                .orElseThrow(() -> new EntityNotFoundException("Equipe da casa não encontrada"));
+
+        Equipe visitante = equipeRepository.findById(dto.equipeVisitanteId())
+                .orElseThrow(() -> new EntityNotFoundException("Equipe visitante não encontrada"));
+
+        partida.setEquipeCasa(casa);
+        partida.setEquipeVisitante(visitante);
+        partida.setDataHora(dto.dataHora());
+        partida.setLocal(dto.local());
+
+        if (dto.campeonatoId() != null) {
+            Campeonato c = campeonatoRepository.findById(dto.campeonatoId())
+                    .orElseThrow(() -> new EntityNotFoundException("Campeonato não encontrado"));
+            partida.setCampeonato(c);
+        } else {
+            partida.setCampeonato(null);
+        }
+
+        return partidaRepository.save(partida);
+    }
+
+    @Transactional
+    public void cancelarPartida(Long partidaId) {
+        Partida partida = partidaRepository.findById(partidaId)
+                .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada"));
+
+        if (partida.getStatus() != PartidaStatus.AGENDADA) {
+            throw new IllegalArgumentException("Não é possível cancelar uma partida que já está 'EM ANDAMENTO' ou 'FINALIZADA'.");
+        }
+
+        partida.setStatus(PartidaStatus.CANCELADA);
+        partidaRepository.save(partida);
+
+        // partidaRepository.delete(partida);
     }
 }

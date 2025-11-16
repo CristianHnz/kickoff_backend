@@ -44,7 +44,23 @@ public class PartidaController {
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PartidaResponseDTO> buscarPorId(@PathVariable Long id) {
-        // Implemente buscarPorId no Service retornando DTO
         return ResponseEntity.ok(partidaService.buscarPorId(id));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<Void> atualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid PartidaInputDTO dto
+    ) {
+        partidaService.atualizarPartida(id, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<Void> cancelar(@PathVariable Long id) {
+        partidaService.cancelarPartida(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -50,4 +50,14 @@ public class JogadorController {
         jogadorService.contratarJogadorExistente(equipeId, dto);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{jogadorId}")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<Void> dispensarJogador(
+            @PathVariable Long equipeId,
+            @PathVariable Long jogadorId
+    ) {
+        jogadorService.dispensarJogador(equipeId, jogadorId);
+        return ResponseEntity.noContent().build();
+    }
 }
