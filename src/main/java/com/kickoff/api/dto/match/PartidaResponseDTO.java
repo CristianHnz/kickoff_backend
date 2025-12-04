@@ -14,6 +14,8 @@ public record PartidaResponseDTO(
         Integer placarVisitante,
         PartidaStatus status,
         Long equipeCasaId,
-        Long equipeVisitanteId
+        Long equipeVisitanteId,
+        Long campeonatoId,
+        int minJogadores
 ) {
 }

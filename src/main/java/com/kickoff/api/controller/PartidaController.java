@@ -1,7 +1,9 @@
 package com.kickoff.api.controller;
 
+import com.kickoff.api.dto.match.JogadorEscaladoResponseDTO;
 import com.kickoff.api.dto.match.PartidaInputDTO;
 import com.kickoff.api.dto.match.PartidaResponseDTO;
+import com.kickoff.api.dto.match.SalvarEscalacaoDTO;
 import com.kickoff.api.service.PartidaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,5 +64,24 @@ public class PartidaController {
     public ResponseEntity<Void> cancelar(@PathVariable Long id) {
         partidaService.cancelarPartida(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{partidaId}/escalacao/{equipeId}")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<Void> salvarEscalacao(
+            @PathVariable Long partidaId,
+            @PathVariable Long equipeId,
+            @Valid @RequestBody SalvarEscalacaoDTO dto
+    ) {
+        partidaService.salvarEscalacao(partidaId, equipeId, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{partidaId}/escalacao")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<JogadorEscaladoResponseDTO>> listarEscalados(
+            @PathVariable Long partidaId
+    ) {
+        return ResponseEntity.ok(partidaService.listarEscalados(partidaId));
     }
 }

@@ -34,6 +34,8 @@ public record GestorCadastroDTO(
 
         List<String> posicoes,
 
-        String licencaCbf
+        String licencaCbf,
+        Double altura,
+        Double peso
 ) {
 }

@@ -30,4 +30,7 @@ public interface PartidaEventoRepository extends JpaRepository<PartidaEvento, Lo
             @Param("campeonatoId") Long campeonatoId,
             @Param("tipoEvento") PartidaEventoTipo tipoEvento
     );
+
+    @Query("SELECT COUNT(pe.id) FROM PartidaEvento pe WHERE pe.jogador.id = :jogadorId AND pe.tipoEvento = :tipoGol")
+    Long countGolsByJogadorId(@Param("jogadorId") Long jogadorId, @Param("tipoGol") PartidaEventoTipo tipoGol);
 }

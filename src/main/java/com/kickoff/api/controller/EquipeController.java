@@ -56,11 +56,11 @@ public class EquipeController {
     }
 
     @GetMapping("/minha-equipe")
-    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE') or hasRole('JOGADOR') or hasRole('TECNICO') or hasRole('AUXILIAR')")
     public ResponseEntity<EquipeDTO> buscarMinhaEquipe(
             @AuthenticationPrincipal String email
     ) {
-        Equipe equipe = equipeService.buscarEquipeDoGestor(email);
+        Equipe equipe = equipeService.buscarMinhaEquipe(email);
 
         return ResponseEntity.ok(new EquipeDTO(
                 equipe.getId(),

@@ -9,5 +9,7 @@ public record JogadorCadastroDTO(
         @NotBlank @Email String email,
         String telefone,
         @NotNull Integer numeroCamisa,
-        @NotBlank String posicao // Ex: "Goleiro", "Atacante"
+        @NotBlank String posicao,
+        Double altura,
+        Double peso
 ) {}

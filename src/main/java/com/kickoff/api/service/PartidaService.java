@@ -1,16 +1,18 @@
 package com.kickoff.api.service;
 
-import com.kickoff.api.dto.match.PartidaInputDTO;
-import com.kickoff.api.dto.match.PartidaResponseDTO;
+import com.kickoff.api.dto.match.*;
 import com.kickoff.api.model.core.Equipe;
-import com.kickoff.api.model.match.Campeonato;
-import com.kickoff.api.model.match.CampeonatoEquipe;
-import com.kickoff.api.model.match.Partida;
-import com.kickoff.api.model.match.PartidaStatus;
+import com.kickoff.api.model.lookup.TipoPartida;
+import com.kickoff.api.model.match.*;
+import com.kickoff.api.model.role.Jogador;
 import com.kickoff.api.repository.core.EquipeRepository;
+import com.kickoff.api.repository.lookup.TipoPartidaRepository;
 import com.kickoff.api.repository.match.CampeonatoEquipeRepository;
 import com.kickoff.api.repository.match.CampeonatoRepository;
+import com.kickoff.api.repository.match.PartidaJogadorRepository;
 import com.kickoff.api.repository.match.PartidaRepository;
+import com.kickoff.api.repository.relationship.JogadorEquipeRepository;
+import com.kickoff.api.repository.role.JogadorRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,9 +32,20 @@ public class PartidaService {
     private CampeonatoEquipeRepository campeonatoEquipeRepository;
     @Autowired
     private CampeonatoRepository campeonatoRepository;
+    @Autowired
+    private TipoPartidaRepository tipoPartidaRepository;
+    @Autowired
+    private JogadorEquipeRepository jogadorEquipeRepository;
+    @Autowired private PartidaJogadorRepository partidaJogadorRepository;
+    @Autowired private JogadorRepository jogadorRepository;
 
     @Transactional
     public Partida agendarPartida(PartidaInputDTO dto) {
+
+        TipoPartida tipoPartida = tipoPartidaRepository.findById(dto.tipoPartidaId())
+                .orElseThrow(() -> new EntityNotFoundException("Tipo de partida inválido."));
+        int minJogadores = tipoPartida.getMinJogadores();
+
         if (dto.equipeCasaId().equals(dto.equipeVisitanteId())) {
             throw new IllegalArgumentException("Uma equipe não pode jogar contra si mesma.");
         }
@@ -43,7 +56,24 @@ public class PartidaService {
         Equipe visitante = equipeRepository.findById(dto.equipeVisitanteId())
                 .orElseThrow(() -> new EntityNotFoundException("Equipe visitante não encontrada"));
 
+        int jogadoresCasa = jogadorEquipeRepository.findAtivosByEquipeId(casa.getId()).size();
+        int jogadoresVisitante = jogadorEquipeRepository.findAtivosByEquipeId(visitante.getId()).size();
+
+        if (jogadoresCasa < minJogadores) {
+            throw new IllegalArgumentException(
+                    "Time da Casa (" + casa.getNome() + ") não possui o mínimo de " +
+                            minJogadores + " jogadores. (Atual: " + jogadoresCasa + ")"
+            );
+        }
+        if (jogadoresVisitante < minJogadores) {
+            throw new IllegalArgumentException(
+                    "Time Visitante (" + visitante.getNome() + ") não possui o mínimo de " +
+                            minJogadores + " jogadores. (Atual: " + jogadoresVisitante + ")"
+            );
+        }
+
         Partida partida = new Partida();
+        partida.setTipoPartida(tipoPartida);
         partida.setEquipeCasa(casa);
         partida.setEquipeVisitante(visitante);
         partida.setDataHora(dto.dataHora());
@@ -134,6 +164,10 @@ public class PartidaService {
     }
 
     public PartidaResponseDTO mapToResponseDTO(Partida p) {
+
+        int minJogadores = (p.getTipoPartida() != null) ? p.getTipoPartida().getMinJogadores() : 0;
+        Long campeonatoId = (p.getCampeonato() != null) ? p.getCampeonato().getId() : null;
+
         return new PartidaResponseDTO(
                 p.getId(),
                 p.getDataHora(),
@@ -144,7 +178,9 @@ public class PartidaService {
                 p.getPlacarVisitante(),
                 p.getStatus(),
                 p.getEquipeCasa().getId(),
-                p.getEquipeVisitante().getId()
+                p.getEquipeVisitante().getId(),
+                campeonatoId,
+                minJogadores
         );
     }
 
@@ -196,5 +232,41 @@ public class PartidaService {
         partidaRepository.save(partida);
 
         // partidaRepository.delete(partida);
+    }
+
+    @Transactional
+    public void salvarEscalacao(Long partidaId, Long equipeId, SalvarEscalacaoDTO dto) {
+        Partida partida = partidaRepository.findById(partidaId)
+                .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada"));
+        Equipe equipe = equipeRepository.findById(equipeId)
+                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada"));
+
+        partidaJogadorRepository.deleteByPartidaIdAndEquipeId(partidaId, equipeId);
+
+        for (JogadorEscaladoInputDTO jDto : dto.escalacao()) {
+            Jogador jogador = jogadorRepository.findById(jDto.jogadorId())
+                    .orElseThrow(() -> new EntityNotFoundException("Jogador ID: " + jDto.jogadorId() + " não encontrado"));
+
+            PartidaJogador pj = new PartidaJogador();
+            pj.setPartida(partida);
+            pj.setEquipe(equipe);
+            pj.setJogador(jogador);
+            pj.setNumeroCamisa(jDto.numeroCamisa());
+            pj.setStatusJogador(jDto.status());
+
+            partidaJogadorRepository.save(pj);
+        }
+    }
+
+    public List<JogadorEscaladoResponseDTO> listarEscalados(Long partidaId) {
+        return partidaJogadorRepository.findByPartidaId(partidaId).stream()
+                .map(pj -> new JogadorEscaladoResponseDTO(
+                        pj.getJogador().getId(),
+                        pj.getJogador().getPessoa().getNome(),
+                        pj.getNumeroCamisa(),
+                        pj.getStatusJogador().name(),
+                        pj.getEquipe().getId()
+                ))
+                .collect(Collectors.toList());
     }
 }

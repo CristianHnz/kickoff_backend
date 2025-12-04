@@ -1,6 +1,5 @@
 package com.kickoff.api.model.role;
 
-// É preciso importar a nova entidade de junção
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.model.relationship.JogadorEquipe;
 import com.kickoff.api.model.core.Pessoa;
@@ -30,6 +29,8 @@ public class Jogador {
     private Pessoa pessoa;
     @Column(name = "numero_camisa")
     private Integer numeroCamisa;
+    private Double altura;
+    private Double peso;
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "jogador_x_posicao",

@@ -16,6 +16,8 @@ public record PartidaInputDTO(
         Long equipeCasaId,
         @NotNull(message = "Time visitante obrigatório")
         Long equipeVisitanteId,
+        @NotNull(message = "O tipo da partida é obrigatório")
+        Long tipoPartidaId,
         Long arbitroId,
         Long campeonatoId
 ) {

@@ -1,6 +1,7 @@
 package com.kickoff.api.model.match;
 
 import com.kickoff.api.model.core.Equipe;
+import com.kickoff.api.model.lookup.TipoPartida;
 import com.kickoff.api.model.role.Arbitro;
 import jakarta.persistence.*;
 import lombok.*;
@@ -39,6 +40,9 @@ public class Partida {
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
     private PartidaStatus status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_partida_id")
+    private TipoPartida tipoPartida;
 
     @PrePersist
     protected void onPersist() {

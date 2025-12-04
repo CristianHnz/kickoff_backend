@@ -31,6 +31,9 @@ public record AuthCadastroDTO(
         @NotNull(message = "Data de Nascimento é obrigatória")
         LocalDate dataNascimento,
         List<String> posicoes,
-        String licencaCbf
+        String licencaCbf,
+        Double altura,
+        Double peso
+
 ) {
 }

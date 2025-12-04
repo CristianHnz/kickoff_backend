@@ -1,6 +1,7 @@
 package com.kickoff.api.controller;
 
 import com.kickoff.api.dto.dashboard.DashboardGestorDTO;
+import com.kickoff.api.dto.dashboard.DashboardJogadorDTO;
 import com.kickoff.api.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,5 +24,13 @@ public class DashboardController {
             @AuthenticationPrincipal String email
     ) {
         return ResponseEntity.ok(dashboardService.getGestorDashboard(email));
+    }
+
+    @GetMapping("/jogador")
+    @PreAuthorize("hasRole('JOGADOR')")
+    public ResponseEntity<DashboardJogadorDTO> getDashboardJogador(
+            @AuthenticationPrincipal String email
+    ) {
+        return ResponseEntity.ok(dashboardService.getJogadorDashboard(email));
     }
 }

@@ -131,7 +131,8 @@ public class AuthService {
             case "JOGADOR" -> {
                 Jogador novoJogador = new Jogador();
                 novoJogador.setPessoa(pessoa);
-
+                novoJogador.setAltura(dto.altura());
+                novoJogador.setPeso(dto.peso());
                 if (dto.posicoes() != null && !dto.posicoes().isEmpty()) {
                     java.util.Set<Posicao> posicoesSet = new java.util.HashSet<>();
 
@@ -164,7 +165,8 @@ public class AuthService {
             case "JOGADOR" -> {
                 Jogador novoJogador = new Jogador();
                 novoJogador.setPessoa(pessoa);
-
+                novoJogador.setAltura(dto.altura());
+                novoJogador.setPeso(dto.peso());
                 if (dto.posicoes() != null && !dto.posicoes().isEmpty()) {
                     java.util.Set<Posicao> posicoesSet = new java.util.HashSet<>();
                     for (String nomePosicao : dto.posicoes()) {
