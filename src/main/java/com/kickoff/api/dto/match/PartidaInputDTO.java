@@ -19,6 +19,7 @@ public record PartidaInputDTO(
         @NotNull(message = "O tipo da partida é obrigatório")
         Long tipoPartidaId,
         Long arbitroId,
-        Long campeonatoId
+        Long campeonatoId,
+        String fase
 ) {
 }

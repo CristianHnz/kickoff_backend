@@ -43,6 +43,16 @@ public class Partida {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_partida_id")
     private TipoPartida tipoPartida;
+    @Column(name = "data_hora_inicio_real")
+    private LocalDateTime dataHoraInicioReal;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "periodo")
+    private PeriodoPartida periodo = PeriodoPartida.NAO_INICIADO;
+    @Column(name = "tempo_jogado_segundos")
+    private Long tempoJogadoSegundos = 0L;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fase")
+    private FaseMataMata fase;
 
     @PrePersist
     protected void onPersist() {

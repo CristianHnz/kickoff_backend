@@ -36,7 +36,7 @@ public class CampeonatoController {
 
         CampeonatoResponseDTO responseDTO = new CampeonatoResponseDTO(
                 campeonato.getId(), campeonato.getNome(), campeonato.getAno(),
-                campeonato.getDataInicio(), campeonato.getDataFim(), campeonato.getStatus()
+                campeonato.getDataInicio(), campeonato.getDataFim(), campeonato.getStatus(), campeonato.getMinEquipes(), campeonato.getIdaEVolta(), campeonato.getTipoPartida().getId()
         );
 
         return ResponseEntity.created(uri).body(responseDTO);
@@ -74,7 +74,7 @@ public class CampeonatoController {
 
         CampeonatoResponseDTO responseDTO = new CampeonatoResponseDTO(
                 campeonato.getId(), campeonato.getNome(), campeonato.getAno(),
-                campeonato.getDataInicio(), campeonato.getDataFim(), campeonato.getStatus()
+                campeonato.getDataInicio(), campeonato.getDataFim(), campeonato.getStatus(), campeonato.getMinEquipes(), campeonato.getIdaEVolta(), campeonato.getTipoPartida().getId()
         );
         return ResponseEntity.ok(responseDTO);
     }
@@ -94,7 +94,7 @@ public class CampeonatoController {
 
         CampeonatoResponseDTO responseDTO = new CampeonatoResponseDTO(
                 c.getId(), c.getNome(), c.getAno(),
-                c.getDataInicio(), c.getDataFim(), c.getStatus()
+                c.getDataInicio(), c.getDataFim(), c.getStatus(), c.getMinEquipes(), c.getIdaEVolta(), c.getTipoPartida().getId()
         );
         return ResponseEntity.ok(responseDTO);
     }
@@ -103,5 +103,19 @@ public class CampeonatoController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ArtilhariaDTO>> getArtilharia(@PathVariable Long id) {
         return ResponseEntity.ok(campeonatoService.buscarArtilharia(id));
+    }
+
+    @PostMapping("/{id}/gerar-tabela")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<Void> gerarTabela(@PathVariable Long id) {
+        campeonatoService.gerarTabela(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/finalizar")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<Void> finalizar(@PathVariable Long id) {
+        campeonatoService.finalizarCampeonato(id);
+        return ResponseEntity.ok().build();
     }
 }

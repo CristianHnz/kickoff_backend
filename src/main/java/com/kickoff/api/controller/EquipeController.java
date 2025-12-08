@@ -1,6 +1,7 @@
 package com.kickoff.api.controller;
 
 import com.kickoff.api.dto.core.EquipeDTO;
+import com.kickoff.api.dto.team.EquipeStatsDTO;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Equipe;
 import com.kickoff.api.service.EquipeService;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -36,7 +38,12 @@ public class EquipeController {
                 equipe.getId(),
                 equipe.getNome(),
                 equipe.getCidade(),
-                equipe.getEstado()
+                equipe.getEstado(),
+                equipe.getAdministrador().getId(),
+                equipe.getEscudo(),
+                equipe.getCorPrimaria(),
+                equipe.getApelido(),
+                equipe.getDataFundacao()
         ));
     }
 
@@ -51,7 +58,7 @@ public class EquipeController {
 
         URI uri = uriBuilder.path("/api/equipes/{id}").buildAndExpand(equipeSalva.getId()).toUri();
         return ResponseEntity.created(uri).body(new EquipeDTO(
-                equipeSalva.getId(), equipeSalva.getNome(), equipeSalva.getCidade(), equipeSalva.getEstado()
+                equipeSalva.getId(), equipeSalva.getNome(), equipeSalva.getCidade(), equipeSalva.getEstado(), equipeSalva.getAdministrador().getId(), equipeSalva.getEscudo(), equipeSalva.getCorPrimaria(), equipeSalva.getApelido(), equipeSalva.getDataFundacao()
         ));
     }
 
@@ -66,7 +73,12 @@ public class EquipeController {
                 equipe.getId(),
                 equipe.getNome(),
                 equipe.getCidade(),
-                equipe.getEstado()
+                equipe.getEstado(),
+                equipe.getAdministrador().getId(),
+                equipe.getEscudo(),
+                equipe.getCorPrimaria(),
+                equipe.getApelido(),
+                equipe.getDataFundacao()
         ));
     }
 
@@ -81,7 +93,23 @@ public class EquipeController {
                 equipeAtualizada.getId(),
                 equipeAtualizada.getNome(),
                 equipeAtualizada.getCidade(),
-                equipeAtualizada.getEstado()
+                equipeAtualizada.getEstado(),
+                equipeAtualizada.getAdministrador().getId(),
+                equipeAtualizada.getEscudo(),
+                equipeAtualizada.getCorPrimaria(),
+                equipeAtualizada.getApelido(),
+                equipeAtualizada.getDataFundacao()
         ));
+    }
+
+    @GetMapping("/meus")
+    public ResponseEntity<List<EquipeDTO>> listarMeusTimes() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(equipeService.listarMeusTimes(email));
+    }
+
+    @GetMapping("/{id}/estatisticas")
+    public ResponseEntity<EquipeStatsDTO> getEstatisticas(@PathVariable Long id) {
+        return ResponseEntity.ok(equipeService.buscarEstatisticas(id));
     }
 }

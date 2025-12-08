@@ -31,6 +31,7 @@ public class TokenService {
         return Jwts.builder()
                 .issuer("Kickoff API")
                 .subject(usuario.getUsername())
+                .claim("id", usuario.getId())
                 .claim("roles", List.of(usuario.getRole()))
                 .issuedAt(Date.from(Instant.now()))
                 .expiration(Date.from(expirationTime))

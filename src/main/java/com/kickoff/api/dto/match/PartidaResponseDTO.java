@@ -16,6 +16,13 @@ public record PartidaResponseDTO(
         Long equipeCasaId,
         Long equipeVisitanteId,
         Long campeonatoId,
-        int minJogadores
+        String nomeCampeonato,
+        int minJogadores,
+        Integer duracaoTotalMinutos,
+        LocalDateTime dataHoraInicioReal,
+        String periodo,
+        Long tempoJogadoSegundos,
+        Long tipoPartidaId,
+        String fase
 ) {
 }

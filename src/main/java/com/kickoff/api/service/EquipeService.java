@@ -1,14 +1,18 @@
 package com.kickoff.api.service;
 
 import com.kickoff.api.dto.core.EquipeDTO;
+import com.kickoff.api.dto.team.EquipeStatsDTO;
 import com.kickoff.api.model.auth.Usuario;
 import com.kickoff.api.model.core.Equipe;
+import com.kickoff.api.model.match.Partida;
+import com.kickoff.api.model.match.PartidaStatus;
 import com.kickoff.api.model.relationship.ComissaoTecnicaEquipe;
 import com.kickoff.api.model.relationship.JogadorEquipe;
 import com.kickoff.api.model.role.ComissaoTecnica;
 import com.kickoff.api.model.role.Jogador;
 import com.kickoff.api.repository.auth.UsuarioRepository;
 import com.kickoff.api.repository.core.EquipeRepository;
+import com.kickoff.api.repository.match.PartidaRepository;
 import com.kickoff.api.repository.relationship.ComissaoTecnicaEquipeRepository;
 import com.kickoff.api.repository.relationship.JogadorEquipeRepository;
 import com.kickoff.api.repository.role.ComissaoTecnicaRepository;
@@ -31,9 +35,14 @@ public class EquipeService {
     private JogadorRepository jogadorRepository;
     @Autowired
     private UsuarioRepository usuarioRepository;
-    @Autowired private JogadorEquipeRepository jogadorEquipeRepository;
-    @Autowired private ComissaoTecnicaRepository comissaoTecnicaRepository;
-    @Autowired private ComissaoTecnicaEquipeRepository comissaoEquipeRepository;
+    @Autowired
+    private JogadorEquipeRepository jogadorEquipeRepository;
+    @Autowired
+    private ComissaoTecnicaRepository comissaoTecnicaRepository;
+    @Autowired
+    private ComissaoTecnicaEquipeRepository comissaoEquipeRepository;
+    @Autowired
+    private PartidaRepository partidaRepository;
 
     @Transactional
     public Equipe criarEquipe(EquipeDTO dto, String email) {
@@ -54,6 +63,10 @@ public class EquipeService {
         equipe.setCidade(dto.cidade());
         equipe.setEstado(dto.estado().toUpperCase());
         equipe.setAdministrador(administrador);
+        equipe.setEscudo(dto.escudo());
+        equipe.setCorPrimaria(dto.corPrimaria());
+        equipe.setApelido(dto.apelido());
+        equipe.setDataFundacao(dto.dataFundacao());
 
         return equipeRepository.save(equipe);
     }
@@ -64,7 +77,12 @@ public class EquipeService {
                         equipe.getId(),
                         equipe.getNome(),
                         equipe.getCidade(),
-                        equipe.getEstado()
+                        equipe.getEstado(),
+                        equipe.getAdministrador().getId(),
+                        equipe.getEscudo(),
+                        equipe.getCorPrimaria(),
+                        equipe.getApelido(),
+                        equipe.getDataFundacao()
                 ))
                 .collect(Collectors.toList());
     }
@@ -110,58 +128,62 @@ public class EquipeService {
         equipe.setNome(dto.nome());
         equipe.setCidade(dto.cidade());
         equipe.setEstado(dto.estado());
+        equipe.setEscudo(dto.escudo());
+        equipe.setCorPrimaria(dto.corPrimaria());
+        equipe.setApelido(dto.apelido());
+        equipe.setDataFundacao(dto.dataFundacao());
         return equipeRepository.save(equipe);
     }
 
-//    @Transactional(readOnly = true)
-//    public List<Equipe> buscarEquipesPorAdministrador(Usuario administrador) {
-//        return equipeRepository.findByAdministrador(administrador);
-//    }
+    public List<EquipeDTO> listarMeusTimes(String email) {
+        Usuario usuario = usuarioRepository.findByPessoaEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado."));
 
-//    @Transactional(readOnly = true)
-//    public Optional<Equipe> buscarEquipePorIdEAdministrador(Long id, Usuario administrador) {
-//        return equipeRepository.findByIdAndAdministrador(id, administrador);
-//    }
+        List<Equipe> equipes = equipeRepository.findAllByAdministradorId(usuario.getId());
 
-//    @Transactional
-//    public Equipe atualizarEquipe(Long id, EquipeDTO dto, Usuario administrador) {
-//        Equipe equipeExistente = equipeRepository.findByIdAndAdministrador(id, administrador)
-//                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada ou você não tem permissão para editá-la."));
-//
-//        if (equipeRepository.findByNomeAndIdNot(dto.nome(), id).isPresent()) {
-//            throw new IllegalArgumentException("O nome '" + dto.nome() + "' já está em uso por outra equipe.");
-//        }
-//        equipeExistente.setNome(dto.nome());
-//        equipeExistente.setCidade(dto.cidade());
-//        equipeExistente.setEstado(dto.estado());
-//
-//        return equipeRepository.save(equipeExistente);
-//    }
+        return equipes.stream()
+                .map(equipe -> new EquipeDTO(
+                        equipe.getId(),
+                        equipe.getNome(),
+                        equipe.getCidade(),
+                        equipe.getEstado(),
+                        equipe.getAdministrador().getId(),
+                        equipe.getEscudo(),
+                        equipe.getCorPrimaria(),
+                        equipe.getApelido(),
+                        equipe.getDataFundacao()
+                ))
+                .collect(Collectors.toList());
+    }
 
-//    @Transactional
-//    public void deletarEquipe(Long id, Usuario administrador) {
-//        Equipe equipe = equipeRepository.findByIdAndAdministrador(id, administrador)
-//                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada ou você não tem permissão para excluí-la."));
-//        equipeRepository.delete(equipe);
-//    }
+    public EquipeStatsDTO buscarEstatisticas(Long equipeId) {
+        List<Partida> partidas = partidaRepository.findHistoricoPorTime(equipeId);
+        long vitorias = 0;
+        long empates = 0;
+        long derrotas = 0;
+        long gp = 0;
+        long gc = 0;
 
-//    @Transactional
-//    public void vincularJogadorSemEquipe(Long equipeId, Long jogadorId, Usuario administrador) {
-//        Equipe equipe = buscarEquipePorIdEAdministrador(equipeId, administrador)
-//                .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada para este administrador."));
-//
-////        Jogador jogador = jogadorRepository.findByIdAndEquipeIsNull(jogadorId)
-////                .orElseThrow(() -> new EntityNotFoundException("Jogador não encontrado ou já possui equipe."));
-//
-////        if (jogador.getEquipe() != null) {
-////            throw new IllegalArgumentException("Este jogador já está vinculado a uma equipe.");
-////        }
-////        jogador.setEquipe(equipe);
-////        jogadorRepository.save(jogador);
-//    }
+        for (Partida p : partidas) {
+            if (p.getStatus() != PartidaStatus.FINALIZADA) continue;
 
-//    public List<Equipe> listarTodas() {
-//        return equipeRepository.findAll();
-//    }
+            boolean isCasa = p.getEquipeCasa().getId().equals(equipeId);
+            int golsTime = isCasa ? p.getPlacarCasa() : p.getPlacarVisitante();
+            int golsAdv = isCasa ? p.getPlacarVisitante() : p.getPlacarCasa();
 
+            gp += golsTime;
+            gc += golsAdv;
+
+            if (golsTime > golsAdv) vitorias++;
+            else if (golsTime == golsAdv) empates++;
+            else derrotas++;
+        }
+
+        long total = vitorias + empates + derrotas;
+        double aproveitamento = total > 0 ? ((vitorias * 3.0 + empates) / (total * 3.0)) * 100.0 : 0.0;
+
+        return new EquipeStatsDTO(
+                total, vitorias, empates, derrotas, gp, gc, (gp - gc), aproveitamento
+        );
+    }
 }

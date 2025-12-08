@@ -65,7 +65,7 @@ public class DashboardService {
 
     public DashboardGestorDTO getGestorDashboard(String email) {
         Equipe equipe = equipeService.buscarMinhaEquipe(email);
-        EquipeDTO equipeDTO = new EquipeDTO(equipe.getId(), equipe.getNome(), equipe.getCidade(), equipe.getEstado());
+        EquipeDTO equipeDTO = new EquipeDTO(equipe.getId(), equipe.getNome(), equipe.getCidade(), equipe.getEstado(), equipe.getAdministrador().getId(), equipe.getEscudo(), equipe.getCorPrimaria(), equipe.getApelido(), equipe.getDataFundacao());
         Long equipeId = equipe.getId();
 
         PartidaResponseDTO proximoJogo = partidaRepository
@@ -145,11 +145,10 @@ public class DashboardService {
 
         BigDecimal media = avaliacaoRepository.findAverageNotaByJogadorId(jogador.getId())
                 .orElse(BigDecimal.ZERO)
-                .setScale(1, BigDecimal.ROUND_HALF_UP); // Arredonda para 1 casa decimal
+                .setScale(1, BigDecimal.ROUND_HALF_UP);
 
         JogadorStatsDTO stats = new JogadorStatsDTO(totalGols != null ? totalGols : 0L, media);
 
-        // 6. Montar DTO
         return new DashboardJogadorDTO(equipeAtual, proximoJogo, ultimoResultado, stats);
     }
 }

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -29,5 +30,12 @@ public class Equipe {
     private LocalDateTime dataCriacao;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_administrador")
-    private Usuario administrador;
+    private Usuario administrador;@Column(name = "escudo", columnDefinition = "TEXT")
+    private String escudo;
+    @Column(name = "cor_primaria")
+    private String corPrimaria;
+    private String apelido;
+    @Column(name = "data_fundacao")
+    private LocalDate dataFundacao;
+
 }

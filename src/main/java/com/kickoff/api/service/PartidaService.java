@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -88,6 +89,10 @@ public class PartidaService {
             partida.setCampeonato(c);
         }
 
+        if (dto.fase() != null && !dto.fase().isBlank()) {
+            partida.setFase(FaseMataMata.valueOf(dto.fase()));
+        }
+
         return partidaRepository.save(partida);
     }
 
@@ -103,6 +108,10 @@ public class PartidaService {
                 .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada"));
         try {
             PartidaStatus status = PartidaStatus.valueOf(statusStr);
+            if (status == PartidaStatus.EM_ANDAMENTO && partida.getDataHoraInicioReal() == null) {
+                partida.setDataHoraInicioReal(
+                        LocalDateTime.now());
+            }
             partida.setStatus(status);
             partidaRepository.save(partida);
 
@@ -164,9 +173,14 @@ public class PartidaService {
     }
 
     public PartidaResponseDTO mapToResponseDTO(Partida p) {
-
         int minJogadores = (p.getTipoPartida() != null) ? p.getTipoPartida().getMinJogadores() : 0;
+        int duracao = (p.getTipoPartida() != null) ? p.getTipoPartida().getDuracaoMinutos() : 90;
         Long campeonatoId = (p.getCampeonato() != null) ? p.getCampeonato().getId() : null;
+        Long tempoAcumulado = (p.getTempoJogadoSegundos() != null) ? p.getTempoJogadoSegundos() : 0L;
+        String periodoAtual = (p.getPeriodo() != null) ? p.getPeriodo().name() : "NAO_INICIADO";
+        String nomeCampeonato = (p.getCampeonato() != null) ? p.getCampeonato().getNome() : "Amistoso";
+        Long tipoPartidaId = (p.getTipoPartida() != null) ? p.getTipoPartida().getId() : null;
+        String fase = (p.getFase() != null) ? p.getFase().name() : null;
 
         return new PartidaResponseDTO(
                 p.getId(),
@@ -180,8 +194,87 @@ public class PartidaService {
                 p.getEquipeCasa().getId(),
                 p.getEquipeVisitante().getId(),
                 campeonatoId,
-                minJogadores
+                nomeCampeonato,
+                minJogadores,
+                duracao,
+                p.getDataHoraInicioReal(),
+                periodoAtual,
+                tempoAcumulado,
+                tipoPartidaId,
+                fase
         );
+    }
+
+    @Transactional
+    public void controlarPartida(Long id, String acao, boolean forcarFim) {
+        Partida partida = partidaRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Partida não encontrada"));
+
+        PeriodoPartida atual = partida.getPeriodo();
+        LocalDateTime agora = LocalDateTime.now();
+
+        if (partida.getTempoJogadoSegundos() == null) {
+            partida.setTempoJogadoSegundos(0L);
+        }
+        switch (acao) {
+            case "INICIAR_JOGO":
+                if (atual != PeriodoPartida.NAO_INICIADO) throw new IllegalStateException("Jogo já iniciado");
+                partida.setPeriodo(PeriodoPartida.PRIMEIRO_TEMPO);
+                partida.setStatus(PartidaStatus.EM_ANDAMENTO);
+                partida.setDataHoraInicioReal(agora);
+                break;
+
+            case "FIM_PRIMEIRO_TEMPO":
+                if (atual != PeriodoPartida.PRIMEIRO_TEMPO) throw new IllegalStateException("Não está no 1º tempo");
+
+                long segundos1T = java.time.Duration.between(partida.getDataHoraInicioReal(), agora).getSeconds();
+
+                int duracaoTotal = partida.getTipoPartida().getDuracaoMinutos();
+                long duracaoMeioTempo = (duracaoTotal / 2) * 60L;
+
+                if (segundos1T < duracaoMeioTempo && !forcarFim) {
+                    long faltam = (duracaoMeioTempo - segundos1T) / 60;
+                    throw new IllegalArgumentException("O 1º tempo ainda não atingiu o tempo regulamentar (" + (duracaoTotal/2) + " min). Faltam aprox. " + faltam + " minutos. Deseja encerrar o 1º tempo mesmo assim?");
+                }
+                partida.setTempoJogadoSegundos(partida.getTempoJogadoSegundos() + segundos1T);
+
+                partida.setPeriodo(PeriodoPartida.INTERVALO);
+                partida.setDataHoraInicioReal(null);
+                break;
+
+            case "INICIAR_SEGUNDO_TEMPO":
+                if (atual != PeriodoPartida.INTERVALO) throw new IllegalStateException("Jogo não está no intervalo");
+                partida.setPeriodo(PeriodoPartida.SEGUNDO_TEMPO);
+                partida.setDataHoraInicioReal(agora);
+                break;
+
+            case "ENCERRAR_JOGO":
+                if (atual != PeriodoPartida.SEGUNDO_TEMPO) throw new IllegalStateException("Jogo deve estar no 2º tempo para encerrar");
+
+                long segundos2T = java.time.Duration.between(partida.getDataHoraInicioReal(), agora).getSeconds();
+                long totalSegundos = partida.getTempoJogadoSegundos() + segundos2T;
+
+                int duracaoMinutos = partida.getTipoPartida().getDuracaoMinutos();
+                long duracaoSegundos = duracaoMinutos * 60L;
+
+                if (totalSegundos < duracaoSegundos && !forcarFim) {
+                    long faltam = (duracaoSegundos - totalSegundos) / 60;
+                    throw new IllegalArgumentException("O jogo ainda não atingiu o tempo regulamentar (" + duracaoMinutos + " min). Faltam aprox. " + faltam + " minutos. Use a opção de forçar encerramento se necessário.");
+                }
+                partida.setTempoJogadoSegundos(totalSegundos);
+                partida.setPeriodo(PeriodoPartida.FIM_DE_JOGO);
+                partida.setStatus(PartidaStatus.FINALIZADA);
+                partida.setDataHoraInicioReal(null);
+                if (partida.getCampeonato() != null) {
+                    processarResultadoCampeonato(partida);
+                }
+                break;
+
+            default:
+                throw new IllegalArgumentException("Ação desconhecida: " + acao);
+        }
+
+        partidaRepository.save(partida);
     }
 
     @Transactional
@@ -208,12 +301,24 @@ public class PartidaService {
         partida.setDataHora(dto.dataHora());
         partida.setLocal(dto.local());
 
+        if (dto.tipoPartidaId() != null) {
+            TipoPartida tipo = tipoPartidaRepository.findById(dto.tipoPartidaId())
+                    .orElseThrow(() -> new EntityNotFoundException("Tipo de partida não encontrado"));
+            partida.setTipoPartida(tipo);
+        }
+
         if (dto.campeonatoId() != null) {
             Campeonato c = campeonatoRepository.findById(dto.campeonatoId())
                     .orElseThrow(() -> new EntityNotFoundException("Campeonato não encontrado"));
             partida.setCampeonato(c);
         } else {
             partida.setCampeonato(null);
+        }
+
+        if (dto.fase() != null && !dto.fase().isBlank()) {
+            partida.setFase(FaseMataMata.valueOf(dto.fase()));
+        } else {
+            partida.setFase(null);
         }
 
         return partidaRepository.save(partida);
@@ -230,8 +335,6 @@ public class PartidaService {
 
         partida.setStatus(PartidaStatus.CANCELADA);
         partidaRepository.save(partida);
-
-        // partidaRepository.delete(partida);
     }
 
     @Transactional
@@ -267,6 +370,19 @@ public class PartidaService {
                         pj.getStatusJogador().name(),
                         pj.getEquipe().getId()
                 ))
+                .collect(Collectors.toList());
+    }
+
+    public List<PartidaResponseDTO> listarPartidasEmAndamento() {
+        return partidaRepository.findByStatus(PartidaStatus.EM_ANDAMENTO).stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<PartidaResponseDTO> listarPartidasPorCampeonato(Long campeonatoId) {
+        return partidaRepository.findByCampeonatoIdOrderByDataHoraAsc(campeonatoId)
+                .stream()
+                .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
 }

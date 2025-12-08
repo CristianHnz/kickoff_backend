@@ -8,6 +8,8 @@ public record JogadorResumoDTO(
         String nome,
         Integer numeroCamisa,
         List<String> posicoes,
-        String status
+        String status,
+        Long equipeId,
+        String nomeEquipe
 ) {
 }

@@ -2,20 +2,24 @@ package com.kickoff.api.service;
 
 import com.kickoff.api.dto.match.*;
 import com.kickoff.api.model.core.Equipe;
-import com.kickoff.api.model.match.Campeonato;
-import com.kickoff.api.model.match.CampeonatoEquipe;
-import com.kickoff.api.model.match.CampeonatoStatus;
-import com.kickoff.api.model.match.PartidaEventoTipo;
+import com.kickoff.api.model.lookup.TipoPartida;
+import com.kickoff.api.model.match.*;
 import com.kickoff.api.repository.core.EquipeRepository;
+import com.kickoff.api.repository.lookup.TipoPartidaRepository;
 import com.kickoff.api.repository.match.CampeonatoEquipeRepository;
 import com.kickoff.api.repository.match.CampeonatoRepository;
 import com.kickoff.api.repository.match.PartidaEventoRepository;
+import com.kickoff.api.repository.match.PartidaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,25 +34,136 @@ public class CampeonatoService {
     private CampeonatoEquipeRepository campeonatoEquipeRepository;
     @Autowired
     private PartidaEventoRepository partidaEventoRepository;
+    @Autowired
+    private PartidaRepository partidaRepository;
+    @Autowired
+    private TipoPartidaRepository tipoPartidaRepository;
 
     @Transactional
     public Campeonato criarCampeonato(CampeonatoInputDTO dto) {
-        if (campeonatoRepository.findByNomeAndAno(dto.nome(), dto.ano()).isPresent()) {
-            throw new IllegalArgumentException("Já existe um campeonato com este nome no ano " + dto.ano());
+        Campeonato c = new Campeonato();
+        c.setNome(dto.nome());
+        c.setAno(dto.ano());
+        c.setDataInicio(dto.dataInicio());
+        c.setDataFim(dto.dataFim());
+        c.setTipo(TipoCampeonato.valueOf(dto.tipo()));
+        c.setStatus(CampeonatoStatus.AGENDADO);
+        c.setIdaEVolta(dto.idaEVolta() != null ? dto.idaEVolta() : false);
+
+        if (dto.tipoPartidaId() != null) {
+            TipoPartida modalidade = tipoPartidaRepository.findById(dto.tipoPartidaId())
+                    .orElseThrow(() -> new EntityNotFoundException("Modalidade inválida"));
+            c.setTipoPartida(modalidade);
         }
 
-        if (dto.dataFim().isBefore(dto.dataInicio())) {
-            throw new IllegalArgumentException("A data de término não pode ser anterior à data de início.");
+        return campeonatoRepository.save(c);
+    }
+
+    @Transactional
+    public void gerarTabela(Long campeonatoId) {
+        Campeonato campeonato = campeonatoRepository.findById(campeonatoId)
+                .orElseThrow(() -> new EntityNotFoundException("Campeonato não encontrado"));
+
+        if (campeonato.getStatus() != CampeonatoStatus.AGENDADO) {
+            throw new IllegalArgumentException("A tabela só pode ser gerada para campeonatos 'AGENDADOS'.");
         }
 
-        Campeonato campeonato = new Campeonato();
-        campeonato.setNome(dto.nome());
-        campeonato.setAno(dto.ano());
-        campeonato.setDataInicio(dto.dataInicio());
-        campeonato.setDataFim(dto.dataFim());
-        campeonato.setStatus(CampeonatoStatus.AGENDADO);
+        List<Equipe> times = campeonatoEquipeRepository.findByCampeonatoId(campeonatoId, Sort.unsorted())
+                .stream().map(CampeonatoEquipe::getEquipe).collect(Collectors.toList());
 
-        return campeonatoRepository.save(campeonato);
+        int minEquipes = (campeonato.getMinEquipes() != null) ? campeonato.getMinEquipes() : 2;
+        if (times.size() < minEquipes) {
+            throw new IllegalArgumentException("Número insuficiente de equipes. Mínimo exigido: " + minEquipes);
+        }
+
+        if (times.size() % 2 != 0) {
+            times.add(null);
+        }
+
+        int numTimes = times.size();
+        int numRodadasTurno = numTimes - 1;
+        int jogosPorRodada = numTimes / 2;
+
+        List<Partida> partidasParaSalvar = new ArrayList<>();
+        LocalDateTime dataBase = campeonato.getDataInicio().atTime(14, 0);
+
+        List<Partida> partidasTurno = new ArrayList<>();
+
+        for (int rodada = 0; rodada < numRodadasTurno; rodada++) {
+            for (int jogo = 0; jogo < jogosPorRodada; jogo++) {
+                Equipe timeCasa = times.get(jogo);
+                Equipe timeVisitante = times.get(numTimes - 1 - jogo);
+
+                if (timeCasa != null && timeVisitante != null) {
+                    Partida p = new Partida();
+                    p.setCampeonato(campeonato);
+
+                    if (campeonato.getTipoPartida() != null) {
+                        p.setTipoPartida(campeonato.getTipoPartida());
+                    }
+
+                    if (rodada % 2 == 0) {
+                        p.setEquipeCasa(timeCasa);
+                        p.setEquipeVisitante(timeVisitante);
+                    } else {
+                        p.setEquipeCasa(timeVisitante);
+                        p.setEquipeVisitante(timeCasa);
+                    }
+
+                    p.setStatus(PartidaStatus.AGENDADA);
+                    p.setDataHora(dataBase.plusDays(rodada * 7L)); // 1 semana por rodada
+                    p.setLocal("A Definir");
+                    partidasTurno.add(p);
+                }
+            }
+            Collections.rotate(times.subList(1, times.size()), 1);
+        }
+
+        partidasParaSalvar.addAll(partidasTurno);
+
+        if (Boolean.TRUE.equals(campeonato.getIdaEVolta())) {
+            LocalDateTime dataInicioReturno = dataBase.plusDays(numRodadasTurno * 7L);
+
+            for (int i = 0; i < partidasTurno.size(); i++) {
+                Partida jogoIda = partidasTurno.get(i);
+                long diasDeDiferenca = java.time.Duration.between(dataBase, jogoIda.getDataHora()).toDays();
+
+                Partida jogoVolta = new Partida();
+                jogoVolta.setCampeonato(campeonato);
+                jogoVolta.setEquipeCasa(jogoIda.getEquipeVisitante());
+                jogoVolta.setEquipeVisitante(jogoIda.getEquipeCasa());
+                jogoVolta.setStatus(PartidaStatus.AGENDADA);
+                jogoVolta.setLocal("A Definir");
+                if (campeonato.getTipoPartida() != null) {
+                    jogoVolta.setTipoPartida(campeonato.getTipoPartida());
+                }
+
+                jogoVolta.setDataHora(dataInicioReturno.plusDays(diasDeDiferenca));
+
+                partidasParaSalvar.add(jogoVolta);
+            }
+        }
+
+        partidaRepository.saveAll(partidasParaSalvar);
+
+        campeonato.setStatus(CampeonatoStatus.EM_ANDAMENTO);
+        campeonatoRepository.save(campeonato);
+    }
+
+    @Transactional
+    public void finalizarCampeonato(Long campeonatoId) {
+        List<TabelaCampeonatoDTO> tabela = buscarTabelaCompleta(campeonatoId);
+
+        if (tabela.isEmpty()) throw new IllegalStateException("Sem times inscritos");
+
+        TabelaCampeonatoDTO campeaoStats = tabela.get(0); // O primeiro da lista ordenada
+        Equipe campeao = equipeRepository.findById(campeaoStats.equipeId()).orElseThrow();
+
+        Campeonato campeonato = campeonatoRepository.findById(campeonatoId).orElseThrow();
+        campeonato.setEquipeCampeada(campeao);
+        campeonato.setStatus(CampeonatoStatus.FINALIZADO);
+
+        campeonatoRepository.save(campeonato);
     }
 
     public List<CampeonatoResponseDTO> listarTodos() {
@@ -59,7 +174,10 @@ public class CampeonatoService {
                         c.getAno(),
                         c.getDataInicio(),
                         c.getDataFim(),
-                        c.getStatus()
+                        c.getStatus(),
+                        c.getMinEquipes(),
+                        c.getIdaEVolta(),
+                        (c.getTipoPartida() != null) ? c.getTipoPartida().getId() : null
                 ))
                 .collect(Collectors.toList());
     }
@@ -88,7 +206,7 @@ public class CampeonatoService {
                 .orElseThrow(() -> new EntityNotFoundException("Campeonato não encontrado"));
 
         CampeonatoResponseDTO info = new CampeonatoResponseDTO(
-                c.getId(), c.getNome(), c.getAno(), c.getDataInicio(), c.getDataFim(), c.getStatus()
+                c.getId(), c.getNome(), c.getAno(), c.getDataInicio(), c.getDataFim(), c.getStatus(), c.getMinEquipes(), c.getIdaEVolta(),(c.getTipoPartida() != null) ? c.getTipoPartida().getId() : null
         );
 
         List<TabelaCampeonatoDTO> tabela = buscarTabelaCompleta(campeonatoId);
@@ -176,10 +294,6 @@ public class CampeonatoService {
 
         campeonato.setStatus(CampeonatoStatus.CANCELADO);
         campeonatoRepository.save(campeonato);
-
-        // List<Partida> partidas = partidaRepository.findByCampeonatoId(id);
-        // partidas.forEach(p -> p.setStatus(PartidaStatus.CANCELADA));
-        // partidaRepository.saveAll(partidas);
     }
 
     public List<ArtilhariaDTO> buscarArtilharia(Long campeonatoId) {

@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,80 @@ public class JogadorService {
     private PosicaoRepository posicaoRepository;
     @Autowired
     private TipoPessoaRepository tipoPessoaRepository;
+
+    public List<JogadorResumoDTO> listarTodosJogadores() {
+        List<Jogador> todos = jogadorRepository.findAll();
+        return todos.stream()
+                .map(this::mapToResumoDTO) // Usa o método auxiliar abaixo
+                .collect(Collectors.toList());
+    }
+
+    private JogadorResumoDTO mapToResumoDTO(Jogador j) {
+        Optional<JogadorEquipe> contratoOpt = jogadorEquipeRepository.findContratoAtivo(j.getId());
+
+        String status = "LIVRE";
+        Long equipeId = null;
+        String nomeEquipe = null;
+        Integer numeroCamisa = j.getNumeroCamisa();
+
+        if (contratoOpt.isPresent()) {
+            JogadorEquipe contrato = contratoOpt.get();
+            status = "CONTRATADO";
+            equipeId = contrato.getEquipe().getId();
+            nomeEquipe = contrato.getEquipe().getNome();
+        }
+
+        List<String> posicoes = j.getPosicoes().stream()
+                .map(Posicao::getDescricao)
+                .collect(Collectors.toList());
+
+        return new JogadorResumoDTO(
+                j.getId(),
+                j.getPessoa().getId(),
+                j.getPessoa().getNome(),
+                numeroCamisa,
+                posicoes,
+                status,
+                equipeId,
+                nomeEquipe
+        );
+    }
+
+    public List<JogadorResumoDTO> listarJogadoresDaEquipe(Long equipeId) {
+        List<JogadorEquipe> vinculos = jogadorEquipeRepository.findAtivosByEquipeId(equipeId);
+
+        return vinculos.stream().map(v -> {
+            Jogador j = v.getJogador();
+            List<String> posicoes = j.getPosicoes().stream()
+                    .map(Posicao::getDescricao).collect(Collectors.toList());
+
+            return new JogadorResumoDTO(
+                    j.getId(),
+                    j.getPessoa().getId(),
+                    j.getPessoa().getNome(),
+                    j.getNumeroCamisa(),
+                    posicoes,
+                    "ATIVO",
+                    v.getEquipe().getId(),
+                    v.getEquipe().getNome()
+            );
+        }).collect(Collectors.toList());
+    }
+
+    public List<JogadorResumoDTO> listarJogadoresDisponiveis() {
+        return jogadorRepository.findJogadoresSemContrato().stream()
+                .map(j -> new JogadorResumoDTO(
+                        j.getId(),
+                        j.getPessoa().getId(),
+                        j.getPessoa().getNome() + " (" + j.getPessoa().getEmail() + ")",
+                        j.getNumeroCamisa(),
+                        j.getPosicoes().stream().map(Posicao::getDescricao).toList(),
+                        "LIVRE",
+                        null,
+                        null
+                ))
+                .collect(Collectors.toList());
+    }
 
     @Transactional
     public void adicionarJogadorAEquipe(Long equipeId, JogadorCadastroDTO dto) {
@@ -69,25 +144,6 @@ public class JogadorService {
         jogadorEquipeRepository.save(vinculo);
     }
 
-    public List<JogadorResumoDTO> listarJogadoresDaEquipe(Long equipeId) {
-        List<JogadorEquipe> vinculos = jogadorEquipeRepository.findAtivosByEquipeId(equipeId);
-
-        return vinculos.stream().map(v -> {
-            Jogador j = v.getJogador();
-            List<String> posicoes = j.getPosicoes().stream()
-                    .map(Posicao::getDescricao).collect(Collectors.toList());
-
-            return new JogadorResumoDTO(
-                    j.getId(),
-                    j.getPessoa().getId(),
-                    j.getPessoa().getNome(),
-                    j.getNumeroCamisa(),
-                    posicoes,
-                    "ATIVO"
-            );
-        }).collect(Collectors.toList());
-    }
-
     private Pessoa criarNovaPessoa(JogadorCadastroDTO dto) {
         TipoPessoa tipoJogador = tipoPessoaRepository.findByDescricao("JOGADOR")
                 .orElseThrow(() -> new IllegalStateException("Tipo JOGADOR não cadastrado no banco"));
@@ -105,19 +161,6 @@ public class JogadorService {
         j.setPessoa(pessoa);
         j.setNumeroCamisa(dto.numeroCamisa());
         return jogadorRepository.save(j);
-    }
-
-    public List<JogadorResumoDTO> listarJogadoresDisponiveis() {
-        return jogadorRepository.findJogadoresSemContrato().stream()
-                .map(j -> new JogadorResumoDTO(
-                        j.getId(),
-                        j.getPessoa().getId(),
-                        j.getPessoa().getNome() + " (" + j.getPessoa().getEmail() + ")", // Exibição
-                        j.getNumeroCamisa(),
-                        j.getPosicoes().stream().map(Posicao::getDescricao).toList(),
-                        "LIVRE"
-                ))
-                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -143,25 +186,6 @@ public class JogadorService {
         vinculo.setEquipe(equipe);
         vinculo.setDataEntrada(LocalDate.now());
         jogadorEquipeRepository.save(vinculo);
-    }
-
-    public List<JogadorResumoDTO> listarTodosJogadores() {
-        List<Jogador> todos = jogadorRepository.findAll();
-
-        return todos.stream().map(j -> {
-
-            String status = jogadorEquipeRepository.findContratoAtivo(j.getId())
-                    .isPresent() ? "CONTRATADO" : "LIVRE";
-
-            return new JogadorResumoDTO(
-                    j.getId(),
-                    j.getPessoa().getId(),
-                    j.getPessoa().getNome(),
-                    j.getNumeroCamisa(),
-                    j.getPosicoes().stream().map(Posicao::getDescricao).collect(Collectors.toList()),
-                    status
-            );
-        }).collect(Collectors.toList());
     }
 
     public JogadorDetalhesDTO buscarDetalhesJogador(Long jogadorId) {

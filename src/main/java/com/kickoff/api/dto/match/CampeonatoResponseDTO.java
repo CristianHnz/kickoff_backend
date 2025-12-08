@@ -1,6 +1,7 @@
 package com.kickoff.api.dto.match;
 
 import com.kickoff.api.model.match.CampeonatoStatus;
+
 import java.time.LocalDate;
 
 public record CampeonatoResponseDTO(
@@ -9,5 +10,9 @@ public record CampeonatoResponseDTO(
         Integer ano,
         LocalDate dataInicio,
         LocalDate dataFim,
-        CampeonatoStatus status
-) {}
+        CampeonatoStatus status,
+        Integer minEquipes,
+        Boolean idaEVolta,
+        Long tipoPartidaId
+) {
+}

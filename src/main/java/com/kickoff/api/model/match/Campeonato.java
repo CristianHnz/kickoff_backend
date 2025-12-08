@@ -1,5 +1,7 @@
 package com.kickoff.api.model.match;
 
+import com.kickoff.api.model.core.Equipe;
+import com.kickoff.api.model.lookup.TipoPartida;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -29,6 +31,19 @@ public class Campeonato {
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
     private CampeonatoStatus status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo")
+    private TipoCampeonato tipo = TipoCampeonato.PONTOS_CORRIDOS;
+    @Column(name = "min_equipes")
+    private Integer minEquipes;
+    @Column(name = "ida_e_volta")
+    private Boolean idaEVolta;
+    @OneToOne
+    @JoinColumn(name = "equipe_campeada_id")
+    private Equipe equipeCampeada;
+    @ManyToOne
+    @JoinColumn(name = "tipo_partida_id")
+    private TipoPartida tipoPartida;
     @PrePersist
     protected void onPersist() {
         if (this.status == null) {

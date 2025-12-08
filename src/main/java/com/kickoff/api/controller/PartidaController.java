@@ -84,4 +84,26 @@ public class PartidaController {
     ) {
         return ResponseEntity.ok(partidaService.listarEscalados(partidaId));
     }
+
+    @GetMapping("/aovivo")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<PartidaResponseDTO>> listarAoVivo() {
+        return ResponseEntity.ok(partidaService.listarPartidasEmAndamento());
+    }
+
+    public record ControlePartidaDTO(String acao, boolean forcar) {}
+    @PostMapping("/{id}/controle")
+    @PreAuthorize("hasRole('GESTOR_EQUIPE')")
+    public ResponseEntity<Void> controlarPartida(
+            @PathVariable Long id,
+            @RequestBody ControlePartidaDTO dto
+    ) {
+        partidaService.controlarPartida(id, dto.acao(), dto.forcar());
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/campeonato/{id}")
+    public ResponseEntity<List<PartidaResponseDTO>> listarPorCampeonato(@PathVariable Long id) {
+        return ResponseEntity.ok(partidaService.listarPartidasPorCampeonato(id));
+    }
 }

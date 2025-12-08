@@ -19,4 +19,7 @@ public class TipoPartida {
 
     @Column(name = "min_jogadores", nullable = false)
     private int minJogadores;
+
+    @Column(name = "duracao_minutos", nullable = false)
+    private int duracaoMinutos;
 }
