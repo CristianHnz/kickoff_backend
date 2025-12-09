@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,6 +57,9 @@ public class PartidaService {
 
         Equipe visitante = equipeRepository.findById(dto.equipeVisitanteId())
                 .orElseThrow(() -> new EntityNotFoundException("Equipe visitante não encontrada"));
+
+        validarConflitoHorario(casa.getId(), casa.getNome(), dto.dataHora(), null);
+        validarConflitoHorario(visitante.getId(), visitante.getNome(), dto.dataHora(), null);
 
         int jogadoresCasa = jogadorEquipeRepository.findAtivosByEquipeId(casa.getId()).size();
         int jogadoresVisitante = jogadorEquipeRepository.findAtivosByEquipeId(visitante.getId()).size();
@@ -218,7 +222,17 @@ public class PartidaService {
         }
         switch (acao) {
             case "INICIAR_JOGO":
-                if (atual != PeriodoPartida.NAO_INICIADO) throw new IllegalStateException("Jogo já iniciado");
+                if (atual != PeriodoPartida.NAO_INICIADO) throw new IllegalArgumentException("Jogo já iniciado");
+                if (partida.getLocal() == null ||
+                        partida.getLocal().trim().isEmpty() ||
+                        partida.getLocal().equalsIgnoreCase("A Definir")) {
+                    throw new IllegalArgumentException("Defina um Local válido para a partia antes de iniciar.");
+                }
+
+                LocalDateTime horarioPermitido = partida.getDataHora().minusMinutes(5);
+                if (agora.isBefore(horarioPermitido)) {
+                    throw new IllegalArgumentException("A partida só pode ser iniciada 5 minutos antes do horário agendado (" + partida.getDataHora() + ").");
+                }
                 partida.setPeriodo(PeriodoPartida.PRIMEIRO_TEMPO);
                 partida.setStatus(PartidaStatus.EM_ANDAMENTO);
                 partida.setDataHoraInicioReal(agora);
@@ -296,6 +310,11 @@ public class PartidaService {
         Equipe visitante = equipeRepository.findById(dto.equipeVisitanteId())
                 .orElseThrow(() -> new EntityNotFoundException("Equipe visitante não encontrada"));
 
+        if (!partida.getDataHora().isEqual(dto.dataHora())) {
+            validarConflitoHorario(casa.getId(), casa.getNome(), dto.dataHora(), partidaId);
+            validarConflitoHorario(visitante.getId(), visitante.getNome(), dto.dataHora(), partidaId);
+        }
+
         partida.setEquipeCasa(casa);
         partida.setEquipeVisitante(visitante);
         partida.setDataHora(dto.dataHora());
@@ -344,6 +363,11 @@ public class PartidaService {
         Equipe equipe = equipeRepository.findById(equipeId)
                 .orElseThrow(() -> new EntityNotFoundException("Equipe não encontrada"));
 
+        if (!partida.getEquipeCasa().getId().equals(equipeId) &&
+                !partida.getEquipeVisitante().getId().equals(equipeId)) {
+            throw new IllegalArgumentException("Esta equipe não participa desta partida, portanto não pode escalar jogadores.");
+        }
+
         partidaJogadorRepository.deleteByPartidaIdAndEquipeId(partidaId, equipeId);
 
         for (JogadorEscaladoInputDTO jDto : dto.escalacao()) {
@@ -377,6 +401,22 @@ public class PartidaService {
         return partidaRepository.findByStatus(PartidaStatus.EM_ANDAMENTO).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    private void validarConflitoHorario(Long timeId, String nomeTime, LocalDateTime dataHora, Long partidaIdParaIgnorar) {
+        LocalDateTime inicioJanela = dataHora.minusMinutes(150); // 2h30 antes
+        LocalDateTime fimJanela = dataHora.plusMinutes(150);   // 2h30 depois
+        long ignoreId = (partidaIdParaIgnorar != null) ? partidaIdParaIgnorar : -1L;
+        boolean conflito = partidaRepository.existeConflitoHorario(timeId, inicioJanela, fimJanela, ignoreId);
+
+        if (conflito) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm");
+            String dataFormatada = dataHora.format(formatter);
+
+            throw new IllegalArgumentException(
+                    "O time " + nomeTime + " já possui partida agendada em horário próximo a " + dataFormatada + " (Intervalo mínimo de 2h30)."
+            );
+        }
     }
 
     public List<PartidaResponseDTO> listarPartidasPorCampeonato(Long campeonatoId) {

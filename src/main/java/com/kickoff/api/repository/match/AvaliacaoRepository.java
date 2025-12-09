@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface AvaliacaoRepository extends JpaRepository<Avaliacao, Long> {
     List<Avaliacao> findByPartidaId(Long partidaId);
     Optional<Avaliacao> findByPartidaIdAndJogadorId(Long partidaId, Long jogadorId);
-    @Query("SELECT AVG(a.nota) FROM Avaliacao a WHERE a.jogador.id = :jogadorId")
+    @Query("SELECT AVG(a.mediaFinal) FROM Avaliacao a WHERE a.jogador.id = :jogadorId")
     Optional<BigDecimal> findAverageNotaByJogadorId(@Param("jogadorId") Long jogadorId);
+    List<Avaliacao> findAllByJogadorId(Long jogadorId);
 }

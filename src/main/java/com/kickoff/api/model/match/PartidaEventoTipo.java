@@ -6,5 +6,7 @@ public enum PartidaEventoTipo {
     CARTAO_AMARELO,
     CARTAO_VERMELHO,
     SUBSTITUICAO,
-    FALTA
+    FALTA,
+    ESCANTEIO,
+    PENALTI
 }

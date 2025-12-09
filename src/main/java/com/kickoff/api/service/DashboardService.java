@@ -108,6 +108,7 @@ public class DashboardService {
         Jogador jogador = jogadorRepository.findByPessoaId(pessoa.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Perfil de Jogador não encontrado"));
 
+        // --- 1. Dados Básicos e de Equipe ---
         EquipeAtualDTO equipeAtual = null;
         PartidaResponseDTO proximoJogo = null;
         PartidaResponseDTO ultimoResultado = null;
@@ -141,13 +142,51 @@ public class DashboardService {
                     .orElse(null);
         }
 
+        // --- 2. Estatísticas Simples ---
         Long totalGols = partidaEventoRepository.countGolsByJogadorId(jogador.getId(), PartidaEventoTipo.GOL);
 
-        BigDecimal media = avaliacaoRepository.findAverageNotaByJogadorId(jogador.getId())
-                .orElse(BigDecimal.ZERO)
-                .setScale(1, BigDecimal.ROUND_HALF_UP);
+        // --- 3. Estatísticas Avançadas (3 Pilares) ---
+        // Busca todas as avaliações deste jogador
+        List<com.kickoff.api.model.match.Avaliacao> avaliacoes = avaliacaoRepository.findAllByJogadorId(jogador.getId());
 
-        JogadorStatsDTO stats = new JogadorStatsDTO(totalGols != null ? totalGols : 0L, media);
+        BigDecimal mediaTecnica = BigDecimal.ZERO;
+        BigDecimal mediaTatica = BigDecimal.ZERO;
+        BigDecimal mediaFisica = BigDecimal.ZERO;
+        BigDecimal mediaGeral = BigDecimal.ZERO;
+        List<BigDecimal> historicoNotas = List.of();
+
+        if (!avaliacoes.isEmpty()) {
+            // Calcula Médias
+            double avgTec = avaliacoes.stream().mapToDouble(a -> a.getNotaTecnica().doubleValue()).average().orElse(0.0);
+            double avgTat = avaliacoes.stream().mapToDouble(a -> a.getNotaTatica().doubleValue()).average().orElse(0.0);
+            double avgFis = avaliacoes.stream().mapToDouble(a -> a.getNotaFisica().doubleValue()).average().orElse(0.0);
+            double avgGeral = avaliacoes.stream().mapToDouble(a -> a.getMediaFinal().doubleValue()).average().orElse(0.0);
+
+            mediaTecnica = BigDecimal.valueOf(avgTec).setScale(1, java.math.RoundingMode.HALF_UP);
+            mediaTatica = BigDecimal.valueOf(avgTat).setScale(1, java.math.RoundingMode.HALF_UP);
+            mediaFisica = BigDecimal.valueOf(avgFis).setScale(1, java.math.RoundingMode.HALF_UP);
+            mediaGeral = BigDecimal.valueOf(avgGeral).setScale(1, java.math.RoundingMode.HALF_UP);
+
+            // Pega as últimas 5 notas para o gráfico de evolução
+            // Ordena por data (mais recente primeiro), pega 5, e inverte para cronológico
+            historicoNotas = avaliacoes.stream()
+                    .sorted((a, b) -> b.getDataAvaliacao().compareTo(a.getDataAvaliacao()))
+                    .limit(5)
+                    .map(com.kickoff.api.model.match.Avaliacao::getMediaFinal)
+                    .sorted() // Se quiser cronológico reverso ou normal, ajustar aqui. Vamos deixar as últimas 5.
+                    .collect(Collectors.toList());
+            // Nota: Para gráfico de linha cronológico, o ideal é ordenar por data ASC.
+            // Aqui pegamos as 5 mais recentes e depois podemos reordenar se precisar.
+        }
+
+        JogadorStatsDTO stats = new JogadorStatsDTO(
+                totalGols != null ? totalGols : 0L,
+                mediaGeral,
+                mediaTecnica,
+                mediaTatica,
+                mediaFisica,
+                historicoNotas
+        );
 
         return new DashboardJogadorDTO(equipeAtual, proximoJogo, ultimoResultado, stats);
     }

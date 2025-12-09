@@ -26,4 +26,17 @@ public interface PartidaRepository extends JpaRepository<Partida, Long> {
     @Query("SELECT p FROM Partida p WHERE (p.equipeCasa.id = :teamId OR p.equipeVisitante.id = :teamId) AND p.status = 'FINALIZADA'")
     List<Partida> findHistoricoPorTime(@Param("teamId") Long teamId);
     List<Partida> findByCampeonatoIdOrderByDataHoraAsc(Long campeonatoId);
+    @Query("""
+        SELECT COUNT(p) > 0 FROM Partida p 
+        WHERE (p.equipeCasa.id = :timeId OR p.equipeVisitante.id = :timeId) 
+        AND p.status NOT IN ('CANCELADA', 'FINALIZADA')
+        AND p.id != :partidaIgnoradaId
+        AND p.dataHora BETWEEN :inicio AND :fim
+    """)
+    boolean existeConflitoHorario(
+            @Param("timeId") Long timeId,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fim") LocalDateTime fim,
+            @Param("partidaIgnoradaId") Long partidaIgnoradaId
+    );
 }
