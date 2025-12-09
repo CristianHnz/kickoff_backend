@@ -51,7 +51,6 @@ public class DashboardService {
     private PartidaService partidaService;
     @Autowired
     private CampeonatoService campeonatoService;
-
     @Autowired
     private PessoaRepository pessoaRepository;
     @Autowired
@@ -108,7 +107,6 @@ public class DashboardService {
         Jogador jogador = jogadorRepository.findByPessoaId(pessoa.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Perfil de Jogador não encontrado"));
 
-        // --- 1. Dados Básicos e de Equipe ---
         EquipeAtualDTO equipeAtual = null;
         PartidaResponseDTO proximoJogo = null;
         PartidaResponseDTO ultimoResultado = null;
@@ -142,11 +140,8 @@ public class DashboardService {
                     .orElse(null);
         }
 
-        // --- 2. Estatísticas Simples ---
         Long totalGols = partidaEventoRepository.countGolsByJogadorId(jogador.getId(), PartidaEventoTipo.GOL);
 
-        // --- 3. Estatísticas Avançadas (3 Pilares) ---
-        // Busca todas as avaliações deste jogador
         List<com.kickoff.api.model.match.Avaliacao> avaliacoes = avaliacaoRepository.findAllByJogadorId(jogador.getId());
 
         BigDecimal mediaTecnica = BigDecimal.ZERO;
@@ -156,7 +151,6 @@ public class DashboardService {
         List<BigDecimal> historicoNotas = List.of();
 
         if (!avaliacoes.isEmpty()) {
-            // Calcula Médias
             double avgTec = avaliacoes.stream().mapToDouble(a -> a.getNotaTecnica().doubleValue()).average().orElse(0.0);
             double avgTat = avaliacoes.stream().mapToDouble(a -> a.getNotaTatica().doubleValue()).average().orElse(0.0);
             double avgFis = avaliacoes.stream().mapToDouble(a -> a.getNotaFisica().doubleValue()).average().orElse(0.0);
@@ -167,16 +161,12 @@ public class DashboardService {
             mediaFisica = BigDecimal.valueOf(avgFis).setScale(1, java.math.RoundingMode.HALF_UP);
             mediaGeral = BigDecimal.valueOf(avgGeral).setScale(1, java.math.RoundingMode.HALF_UP);
 
-            // Pega as últimas 5 notas para o gráfico de evolução
-            // Ordena por data (mais recente primeiro), pega 5, e inverte para cronológico
             historicoNotas = avaliacoes.stream()
                     .sorted((a, b) -> b.getDataAvaliacao().compareTo(a.getDataAvaliacao()))
                     .limit(5)
                     .map(com.kickoff.api.model.match.Avaliacao::getMediaFinal)
                     .sorted() // Se quiser cronológico reverso ou normal, ajustar aqui. Vamos deixar as últimas 5.
                     .collect(Collectors.toList());
-            // Nota: Para gráfico de linha cronológico, o ideal é ordenar por data ASC.
-            // Aqui pegamos as 5 mais recentes e depois podemos reordenar se precisar.
         }
 
         JogadorStatsDTO stats = new JogadorStatsDTO(

@@ -43,7 +43,7 @@ public class JogadorService {
     public List<JogadorResumoDTO> listarTodosJogadores() {
         List<Jogador> todos = jogadorRepository.findAll();
         return todos.stream()
-                .map(this::mapToResumoDTO) // Usa o método auxiliar abaixo
+                .map(this::mapToResumoDTO)
                 .collect(Collectors.toList());
     }
 

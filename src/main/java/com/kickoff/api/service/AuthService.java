@@ -35,7 +35,6 @@ public class AuthService {
     private UsuarioRepository usuarioRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
     @Autowired
     private PosicaoRepository posicaoRepository;
     @Autowired

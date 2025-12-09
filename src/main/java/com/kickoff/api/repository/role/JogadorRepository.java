@@ -12,14 +12,10 @@ import java.util.Optional;
 
 @Repository
 public interface JogadorRepository extends JpaRepository<Jogador, Long> {
-
     Optional<Jogador> findByPessoa(Pessoa pessoa);
-
     @Query("SELECT j FROM Jogador j JOIN FETCH j.posicoes WHERE j.id = :id")
     Optional<Jogador> finFdByIdWithPosicoes(@Param("id") Long id);
-
     Optional<Jogador> findByPessoaId(Long pessoaId);
-
     @Query("""
                 SELECT j FROM Jogador j 
                 WHERE j.id NOT IN (

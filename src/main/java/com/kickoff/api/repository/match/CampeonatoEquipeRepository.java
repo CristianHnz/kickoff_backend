@@ -12,10 +12,7 @@ import java.util.Optional;
 public interface CampeonatoEquipeRepository extends JpaRepository<CampeonatoEquipe, Long> {
 
     List<CampeonatoEquipe> findByCampeonatoId(Long campeonatoId, Sort sort);
-
     boolean existsByCampeonatoIdAndEquipeId(Long campeonatoId, Long equipeId);
-
     Optional<CampeonatoEquipe> findByCampeonatoIdAndEquipeId(Long campeonatoId, Long equipeId);
-
     List<CampeonatoEquipe> findByEquipeId(Long equipeId);
 }

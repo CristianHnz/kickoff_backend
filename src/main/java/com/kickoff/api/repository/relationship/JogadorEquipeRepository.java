@@ -14,9 +14,7 @@ public interface JogadorEquipeRepository extends JpaRepository<JogadorEquipe, Lo
 
     @Query("SELECT je FROM JogadorEquipe je WHERE je.equipe.id = :equipeId AND je.dataSaida IS NULL")
     List<JogadorEquipe> findAtivosByEquipeId(@Param("equipeId") Long equipeId);
-
     @Query("SELECT je FROM JogadorEquipe je WHERE je.jogador.id = :jogadorId AND je.dataSaida IS NULL")
     Optional<JogadorEquipe> findContratoAtivo(@Param("jogadorId") Long jogadorId);
-
     List<JogadorEquipe> findByJogadorIdOrderByDataEntradaDesc(Long jogadorId);
 }

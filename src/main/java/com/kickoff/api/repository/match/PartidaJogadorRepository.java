@@ -10,8 +10,6 @@ import java.util.List;
 public interface PartidaJogadorRepository extends JpaRepository<PartidaJogador, Long> {
 
     List<PartidaJogador> findByPartidaId(Long partidaId);
-
     List<PartidaJogador> findByPartidaIdAndEquipeId(Long partidaId, Long equipeId);
-
     void deleteByPartidaIdAndEquipeId(Long partidaId, Long equipeId);
 }

@@ -14,9 +14,7 @@ public interface ComissaoTecnicaEquipeRepository extends JpaRepository<ComissaoT
 
     @Query("SELECT cte FROM ComissaoTecnicaEquipe cte WHERE cte.equipe.id = :equipeId AND cte.dataSaida IS NULL")
     List<ComissaoTecnicaEquipe> findAtivosByEquipeId(@Param("equipeId") Long equipeId);
-
     @Query("SELECT cte FROM ComissaoTecnicaEquipe cte WHERE cte.comissaoTecnica.id = :comissaoId AND cte.dataSaida IS NULL")
     Optional<ComissaoTecnicaEquipe> findContratoAtivo(@Param("comissaoId") Long comissaoId);
-
     List<ComissaoTecnicaEquipe> findByComissaoTecnicaId(Long comissaoId);
 }
